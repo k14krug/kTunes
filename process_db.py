@@ -67,9 +67,8 @@ nbr_of_genre_songs=[round(tot_nbr_of_songs*float(genre_pct[0])),
 eq = [100/nbr_of_genre_songs[0],100/nbr_of_genre_songs[1], 100/nbr_of_genre_songs[2], 100/nbr_of_genre_songs[3],100/nbr_of_genre_songs[4]]
 tot_eq = [eq[0],eq[1],eq[2],eq[3],eq[4]]
 
-def main(dbug_lvl=0):
+def main(dbug_lvl=0):  
   global debug_level
-
   debug_level=dbug_lvl
   #if __name__ == "__main__":
 
