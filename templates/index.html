@@ -1,0 +1,12 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <h1>{% block title %} Welcome to kTunes index {% endblock %}</h1>
+    {% for row in t_artist_cnt %}
+    <a href="{{ url_for('disp_artist', artist=row['artist']) }}">
+        {{ row['artist'] }} </a>
+    <span class="badge badge-primary">{{ row['last_play_dt'] }}</span>
+    <span class="badge badge-primary">{{ row['cnt'] }}</span>
+    <hr>
+{% endfor %}
+{% endblock %}

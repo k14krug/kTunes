@@ -1,0 +1,7 @@
+{% extends 'base.html' %}
+{% block content %}
+      <form method = "POST">
+         Artist Search: <input name="artist"/> <button type="submit">Submit</button>
+      </form>
+      <a href="{{ url_for('create_playlist_form', playlist_name='playlistName') }}"> Create new Playlist </a>
+{% endblock %}

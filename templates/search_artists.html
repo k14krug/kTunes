@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <h2>{% block title %} Tracks from artists titles begininning with:  {% endblock %}</h2>
+    <h2>{{ artist }}</h2>    
+    <table border = 1>
+        <thead>
+            <td>Artist</td>
+            <td>Song</td>
+            <td>Genre</td>
+            <td>Last Play Dt</td>
+            <td>Rating</td>
+            <td>Cnt</td>
+            <td>Repeat Cnt</td>
+        </thead>
+        
+        {% for row in t_tracks %}
+           <tr>
+              <td>{{row["artist"]}}</td>
+              <td>{{row["song"]}}</td>
+              <td>{{row["genre"]}}</td>
+              <td>{{row["last_play_dt"]}}</td>
+              <td>{{row["rating"]}}</td>
+              <td>{{row["cnt"]}}</td>
+              <td>{{row["repeat_cnt"]}}</td>
+           </tr>
+        {% endfor %}
+     </table>
+    <hr>
+{% endblock %}
