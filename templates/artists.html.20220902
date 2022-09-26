@@ -1,0 +1,12 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <h1>{% block title %} Welcome to kTunes {% endblock %}</h1>
+    {% for post in posts %}
+    <a href="{{ url_for('post', artist=post['artist']) }}">
+        {{ post['artist'] }} </a>
+    <span class="badge badge-primary">{{ post['song'] }}</span>
+    <span class="badge badge-primary">{{ post['genre'] }}</span>
+    <hr>
+{% endfor %}
+{% endblock %}

@@ -2,9 +2,6 @@ import sqlite3
 #from tkinter.tix import ROW
 from flask import Flask,redirect, url_for, request, render_template
 from werkzeug.exceptions import abort
-import process_db
-
-# kkrug - variables prefixed with t_* are to help me remember these are being passed to a template.
 
 # Create your Flask app instance with the name "app". Pass it the special var __name__ that holds the name of the current Python module.
 # Often the python module is also named "app" but does not need to be. If you use another name then you need to tell flask
@@ -16,66 +13,39 @@ def get_db_connection():
     conn.row_factory = sqlite3.Row
     return conn
 
-@app.route('/', methods=["GET", "POST"])
-def enter_data():
-   if request.method == "POST":
-      artist = request.form["artist"]
-      artist_tracks = get_artist_tracks(artist)
-      return render_template('artists.html', t_tracks=artist_tracks, artist=artist)
-   else:
-      return render_template('menu.html')
-
 @app.route('/index')
 def index():
     conn = get_db_connection()
     artist_cnt = conn.execute('select artist, max(last_play_dt) last_play_dt,  count(*) cnt from tracks group by artist').fetchall()
     conn.close()
     #print("Index Row=",artists)
-    return render_template('index.html', t_artist_cnt=artist_cnt)
+    return render_template('index.html', h_artist_cnt=artist_cnt)
 
-def get_artist_tracks(artist):
+def get_artist(artist):
     #print('In get_artist',artist)
     conn = get_db_connection()
-    a = "%" + artist + "%"
-    artist_tracks = conn.execute('SELECT artist, song, genre, last_play_dt, rating, cnt, repeat_cnt FROM tracks WHERE artist like ?',
-                        (a,)).fetchall()
+    artist_tracks = conn.execute('SELECT artist, song, genre, last_play_dt, rating, cnt, repeat_cnt FROM tracks WHERE artist = ?',
+                        (artist,)).fetchall()
     conn.close()
+    #print("Row = ",posts)
     if artist_tracks is None:
         print("Uh oh - nothing to post")
         abort(404)
     return artist_tracks
 
-@app.route('/artist/<artist>', methods=["GET", "POST"])
-def disp_artist(artist):
-   if request.method == "POST":
-      artist = request.form["artist"]
-      artist_tracks = get_artist_tracks(artist)
-   else:
-      artist_tracks = get_artist_tracks(artist)
-   return render_template('artists.html', t_tracks=artist_tracks, artist=artist)
+@app.route('/artist/<artist>')
+def post(artist):
+    artist_tracks = get_artist(artist)
+    return render_template('artists.html', tracks=artist_tracks, artist=artist)
 
-@app.route('/newplaylist',methods = ['POST', 'GET'])
-def create_playlist_form():
-   if request.method == "POST":
-      
-      pcts = [
-              float(request.form["latest_pct"]),
-              float(request.form["in_rot_pct"]),
-              float(request.form["other_pct"]),
-              float(request.form["album_pct"]),
-              float(request.form["old_pct"])
-             ]
-      #genre_pct=[str(.16),str(.44),str(.27),str(.08),str(.05)]
-      process_db.main(1,pcts)
-      return render_template("new_playlist.html")
-   else:
-      playlist_name="playlist_09_23_22"
-      latest_pct=.16
-      in_rot_pct=.44
-      other_pct=.27
-      old_pct=.08
-      album_pct=.05
-      return render_template("new_playlist.html",playlist_name=playlist_name, latest_pct=latest_pct)
+@app.route('/search/<artist>')
+def search(artist):
+    artist_tracks = get_artist(artist)
+    return render_template('artists.html', tracks=artist_tracks, artist=artist)
+
+@app.route('/')
+def enter_data():
+   return render_template('input_form.html')
 
 @app.route('/result',methods = ['POST', 'GET'])
 def result():

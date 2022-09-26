@@ -18,6 +18,7 @@ spc[4] = "   "
 spc[5] = "    "
 
 def debug_out(debug_val,debug_line):
+  
   if debug_val <= debug_level:
     tup1 = (debug_line)
     strg = spc[debug_val]
@@ -27,6 +28,7 @@ def debug_out(debug_val,debug_line):
     if __name__ == "__main__":
       print(strg)
     if write_debug_to_file == True:
+      print("in debug_out", debug_val, write_debug_to_file)
       df.write(strg + "\n")
 
 tot_nbr_of_minutes=2500
@@ -51,24 +53,24 @@ genre=""
 genres=["Latest","In Rot","Other","Old","Album"]
 repeat = [15,15,30,45,45]
 
-# Percentage of total tracks that a genre makes up. This was derived from the original # My Radio # playlist
-# and the percentages I found each genre was taking up.
+  # Percentage of total tracks that a genre makes up. 
+  # This was derived from the original "# My Radio #" playlist and the percentages I found each genre was taking up.
 genre_pct=[str(.16),str(.44),str(.27),str(.08),str(.05)]
+debug_level=0
 
-# Use the above percentages to determine how many songs from each genre to include in this playlist.
-nbr_of_genre_songs=[round(tot_nbr_of_songs*float(genre_pct[0])),
-                    round(tot_nbr_of_songs*float(genre_pct[1])),
-                    round(tot_nbr_of_songs*float(genre_pct[2])),
-                    round(tot_nbr_of_songs*float(genre_pct[3])),
-                    round(tot_nbr_of_songs*float(genre_pct[4]))]
+def main(dbug_lvl=debug_level,g_pct=genre_pct):  
+  # Use the above percentages to determine how many songs from each genre to include in this playlist.
+  nbr_of_genre_songs=[round(tot_nbr_of_songs*float(g_pct[0])),
+                      round(tot_nbr_of_songs*float(g_pct[1])),
+                      round(tot_nbr_of_songs*float(g_pct[2])),
+                      round(tot_nbr_of_songs*float(g_pct[3])),
+                      round(tot_nbr_of_songs*float(g_pct[4]))]
 
-# The eq list is used to compute the right spacing of genres in the playlist thus insuring it has the 
-# right number of tracks of each genre.
-eq = [100/nbr_of_genre_songs[0],100/nbr_of_genre_songs[1], 100/nbr_of_genre_songs[2], 100/nbr_of_genre_songs[3],100/nbr_of_genre_songs[4]]
-tot_eq = [eq[0],eq[1],eq[2],eq[3],eq[4]]
+  # The eq list is used to compute the right spacing of genres in the playlist thus insuring it has the 
+  # right number of tracks of each genre.
+  eq = [100/nbr_of_genre_songs[0],100/nbr_of_genre_songs[1], 100/nbr_of_genre_songs[2], 100/nbr_of_genre_songs[3],100/nbr_of_genre_songs[4]]
+  tot_eq = [eq[0],eq[1],eq[2],eq[3],eq[4]]
 
-def main(dbug_lvl=0):  
-  global debug_level
   debug_level=dbug_lvl
   #if __name__ == "__main__":
 
@@ -78,6 +80,11 @@ def main(dbug_lvl=0):
   debug_out(0,["# Debug Level -",debug_level])
   debug_out(0,["# # # # # # # # # # # # # # # # # # # # # "])
   debug_out(0,["# Genre Percentages: "])
+  debug_out(0,["#   -",genres[0],float(g_pct[0])])
+  debug_out(0,["#   -",genres[1],float(g_pct[1])])
+  debug_out(0,["#   -",genres[2],float(g_pct[2])])
+  debug_out(0,["#   -",genres[3],float(g_pct[3])])
+  debug_out(0,["#   -",genres[4],float(g_pct[4])])
   debug_out(0,["# # # # # # # # # # # # # # # # # # # # # "])
   debug_out(0,["# Genre Song Count based on above percentages: "])
   debug_out(0,["#   -",genres[0],nbr_of_genre_songs[0]])
@@ -270,15 +277,17 @@ def main(dbug_lvl=0):
 
   debug_out(1,["End of process_db_genre_file_order.txt. cnt=",cnt])
 
-  f1.close()
-  f2.close()
-
   conn.commit()
   conn.close()
 
   debug_out(0,["# # # # # # # # # # # # # # # # # # # # # "])
   debug_out(0,["# Script execution complete. Final track count=",cnt+1])
   debug_out(0,["# # # # # # # # # # # # # # # # # # # # # "])
+
+  f1.close() # process_db_genre_fin_order.txt
+  f2.close() # m3u file
+  df.close() # Debug file
+
 
 if __name__ == "__main__":
    main()
