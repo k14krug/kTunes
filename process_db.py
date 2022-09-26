@@ -67,7 +67,7 @@ nbr_of_genre_songs=[round(tot_nbr_of_songs*float(genre_pct[0])),
 eq = [100/nbr_of_genre_songs[0],100/nbr_of_genre_songs[1], 100/nbr_of_genre_songs[2], 100/nbr_of_genre_songs[3],100/nbr_of_genre_songs[4]]
 tot_eq = [eq[0],eq[1],eq[2],eq[3],eq[4]]
 
-debug_level=2
+debug_level=4
 
 debug_out(.5,"# # # # # # # # # # # # # # # # # # # # # ")
 debug_out(.5,["# Creating playlist of x minutes ",tot_nbr_of_minutes])
@@ -142,7 +142,7 @@ def main():
   # Genre artist repeat interval
   # # # # # # # 
   def check_artist_repeat():
-    global artist, genre, artist_last_played,last_played
+    global artist, artist_last_played,last_played
     debug_out(4,["check_artist_repeat:",artist,genre,cnt,last_played])
     last_played_cur.execute('''select g.last_played, genre, a.last_played
                                 from artist_last_played  g
@@ -157,7 +157,7 @@ def main():
     if row is None:
       #Really Not sure why the above select would not return a row. The Artist_last_played
       #is loaded in load_sqlite.py based on all tracks so it should be good to go
-      debug_out(4,"This shouldn't happen so I'm exiting - gonna have to debug this one")
+      debug_out(.5,"This shouldn't happen so I'm exiting - gonna have to debug this one")
       exit()
       insert_stmt='''insert into artist_last_played
                   (artist, genre, last_played)
@@ -207,7 +207,7 @@ def main():
   # loop count gets to the artist repeat interval. 
   # # # # # # # # 
   def process_genre_track():
-    global artist, length, song, location, genre_repeat, last_played, cnt, genre
+    global artist, length, song, location, genre_repeat, last_played, cnt
     return_val=False
     debug_out(2,["process_genre_track:",cnt, genre,return_val])
     open_genre_track_cursors(genre)
@@ -216,7 +216,7 @@ def main():
     try:
       song,artist, last_play_dt, last_played, rating, length, repeat_cnt, location=genre_cur.fetchone()
     except TypeError:
-      debug_out(2,["process_genre_track - Processed all genres tracks, need to start over ",cnt, genre, return_val])
+      debug_out(.5,["process_genre_track - Processed all genres tracks, need to start over ",cnt, genre, return_val])
       sql_stmnt.execute('update tracks set last_played=0 where genre = ?;',(genre,))
       open_genre_track_cursors(genre)
       song,artist, last_play_dt, last_played, rating, length, repeat_cnt, location=genre_cur.fetchone()
