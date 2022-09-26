@@ -10,7 +10,7 @@ write_debug_to_file = True
 if write_debug_to_file == True:
   df = open("debug_out.txt", "w")
 spc = {}
-spc[.5] = ""
+spc[0] = ""
 spc[1] = ""
 spc[2] = " "
 spc[3] = "  "
@@ -19,14 +19,14 @@ spc[5] = "    "
 
 def debug_out(debug_val,debug_line):
   if debug_val <= debug_level:
+    tup1 = (debug_line)
+    strg = spc[debug_val]
+    for item in tup1:
+      item = str(item)
+      strg = strg + item + " "
     if __name__ == "__main__":
-      print(spc[debug_val],debug_line)
+      print(strg)
     if write_debug_to_file == True:
-      tup1 = (debug_line)
-      strg = spc[debug_val]
-      for item in tup1:
-        item = str(item)
-        strg = strg + item + ", "
       df.write(strg + "\n")
 
 tot_nbr_of_minutes=2500
@@ -67,22 +67,27 @@ nbr_of_genre_songs=[round(tot_nbr_of_songs*float(genre_pct[0])),
 eq = [100/nbr_of_genre_songs[0],100/nbr_of_genre_songs[1], 100/nbr_of_genre_songs[2], 100/nbr_of_genre_songs[3],100/nbr_of_genre_songs[4]]
 tot_eq = [eq[0],eq[1],eq[2],eq[3],eq[4]]
 
-debug_level=4
+def main(dbug_lvl=0):
+  global debug_level
 
-debug_out(.5,"# # # # # # # # # # # # # # # # # # # # # ")
-debug_out(.5,["# Creating playlist of x minutes ",tot_nbr_of_minutes])
-debug_out(.5,["# Total Songs -",tot_nbr_of_songs])
-debug_out(.5,["# Debug Level -",debug_level])
-debug_out(.5,"# # # # # # # # # # # # # # # # # # # # # ")
-debug_out(.5,"# Genre Song Count: ")
-debug_out(.5,["#   -",genres[0],nbr_of_genre_songs[0]])
-debug_out(.5,["#   -",genres[1],nbr_of_genre_songs[1]])
-debug_out(.5,["#   -",genres[2],nbr_of_genre_songs[2]])
-debug_out(.5,["#   -",genres[3],nbr_of_genre_songs[3]])
-debug_out(.5,["#   -",genres[4],nbr_of_genre_songs[4]])
+  debug_level=dbug_lvl
+  #if __name__ == "__main__":
+
+  debug_out(0,["# # # # # # # # # # # # # # # # # # # # # "])
+  debug_out(0,["# Creating playlist of", tot_nbr_of_minutes,"minutes."])
+  debug_out(0,["# Total Songs -",tot_nbr_of_songs])
+  debug_out(0,["# Debug Level -",debug_level])
+  debug_out(0,["# # # # # # # # # # # # # # # # # # # # # "])
+  debug_out(0,["# Genre Percentages: "])
+  debug_out(0,["# # # # # # # # # # # # # # # # # # # # # "])
+  debug_out(0,["# Genre Song Count based on above percentages: "])
+  debug_out(0,["#   -",genres[0],nbr_of_genre_songs[0]])
+  debug_out(0,["#   -",genres[1],nbr_of_genre_songs[1]])
+  debug_out(0,["#   -",genres[2],nbr_of_genre_songs[2]])
+  debug_out(0,["#   -",genres[3],nbr_of_genre_songs[3]])
+  debug_out(0,["#   -",genres[4],nbr_of_genre_songs[4]])
 
 
-def main():
   #  Connects to db
   conn = sqlite3.connect('iTunes.sqlite')
 
@@ -157,7 +162,7 @@ def main():
     if row is None:
       #Really Not sure why the above select would not return a row. The Artist_last_played
       #is loaded in load_sqlite.py based on all tracks so it should be good to go
-      debug_out(.5,"This shouldn't happen so I'm exiting - gonna have to debug this one")
+      debug_out(0,"This shouldn't happen so I'm exiting - gonna have to debug this one")
       exit()
       insert_stmt='''insert into artist_last_played
                   (artist, genre, last_played)
@@ -216,7 +221,7 @@ def main():
     try:
       song,artist, last_play_dt, last_played, rating, length, repeat_cnt, location=genre_cur.fetchone()
     except TypeError:
-      debug_out(.5,["process_genre_track - Processed all genres tracks, need to start over ",cnt, genre, return_val])
+      debug_out(0,["# Processed all", "'"+genre+"'", "tracks. Need to start over.","Cnt=", cnt, "return_val=",return_val])
       sql_stmnt.execute('update tracks set last_played=0 where genre = ?;',(genre,))
       open_genre_track_cursors(genre)
       song,artist, last_play_dt, last_played, rating, length, repeat_cnt, location=genre_cur.fetchone()
@@ -272,6 +277,9 @@ def main():
   conn.commit()
   conn.close()
 
-  debug_out(.5,"# Script execution complete")
+  debug_out(0,["# # # # # # # # # # # # # # # # # # # # # "])
+  debug_out(0,["# Script execution complete. Final track count=",cnt+1])
+  debug_out(0,["# # # # # # # # # # # # # # # # # # # # # "])
+
 if __name__ == "__main__":
    main()
