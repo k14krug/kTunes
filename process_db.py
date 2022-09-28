@@ -8,7 +8,7 @@ import sys
 
 write_debug_to_file = True
 if write_debug_to_file == True:
-  df = open("debug_out.txt", "w")
+  df = open("debug.log", "w")
 spc = {}
 spc[0] = ""
 spc[1] = ""
@@ -28,7 +28,7 @@ def debug_out(debug_val,debug_line):
     if __name__ == "__main__":
       print(strg)
     if write_debug_to_file == True:
-      print("in debug_out", debug_val, write_debug_to_file)
+      #print("in debug_out", debug_val, write_debug_to_file)
       df.write(strg + "\n")
 
 tot_nbr_of_minutes=2500
@@ -95,7 +95,7 @@ def main(dbug_lvl=debug_level,g_pct=genre_pct):
 
 
   #  Connects to db
-  conn = sqlite3.connect('iTunes.sqlite')
+  conn = sqlite3.connect('iTunes.2.0.sqlite')
 
   # # # # # # # #
   # The check_a_row funcition lays out the order of tracks based on the correct genre spacing to insure the right nbr
