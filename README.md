@@ -15,10 +15,10 @@ The new playlist can be played with any app that reads *.m3u files but if you wa
 - The existing iTunes xml file is copied to the project directory then loaded to a sqlite table. All songs are loaded into a table in least recently played order
 - A flask web app presents a screen where you provide:
   - Name of playlist
-  - Total length in minutes of new playlist
+  - Total desired length in minutes for new playlist
   - % to include for each genre(category)
 
-- After you submit the flash form it will display how many total songs the new playlist contains and the # of songs from each genre(category)
+- After you submit the flask form it will display how many total songs the new playlist contains and the # of songs from each genre(category)
 - The process_db.py script will first build a placeholder playlist. It contains an entry for each song but only indicates what genre it will be. This is just trying to create a smooth mixtrue of the 5 genres. Next it will parse out songs from the loaded sqlite table to final playlist file.
 - Running a post script copies the new playlist to your iTunes direcory
 - In Explorer you must drop the playlist on top of the ImportM3U.vbs apple script
