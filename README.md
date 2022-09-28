@@ -1,4 +1,4 @@
-# kTunes - An alternative to iTunes smartplaylist
+# kTunes - An alternative to iTunes Smart Playlists
 
 ## Purpose
 
