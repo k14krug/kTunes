@@ -6,9 +6,6 @@ import array
 import traceback
 import sys
 
-write_debug_to_file = True
-if write_debug_to_file == True:
-  df = open("debug.log", "w")
 spc = {}
 spc[0] = ""
 spc[1] = ""
@@ -17,22 +14,6 @@ spc[3] = "  "
 spc[4] = "   "
 spc[5] = "    "
 
-def debug_out(debug_val,debug_line):
-  
-  if debug_val <= debug_level:
-    tup1 = (debug_line)
-    strg = spc[debug_val]
-    for item in tup1:
-      item = str(item)
-      strg = strg + item + " "
-    if __name__ == "__main__":
-      print(strg)
-    if write_debug_to_file == True:
-      #print("in debug_out", debug_val, write_debug_to_file)
-      df.write(strg + "\n")
-
-tot_nbr_of_minutes=2500
-tot_nbr_of_songs=int(tot_nbr_of_minutes/4) # avg song is 4 minutes
 
 
 # # # #
@@ -45,26 +26,31 @@ tot_nbr_of_songs=int(tot_nbr_of_minutes/4) # avg song is 4 minutes
 # # # # #
 cnt=0
 genre=""
+playlist_name="playlist"
+
 # Here we defines the genres were using and then start
 # defining values to associate with them, like artist "repeat".
 # The artist repeat is applied to each genre. For example we only want to here an artist
 # from the Other genre no more frequently then every 30 songs (its the 3rd index in the list of genres).
-
 genres=["Latest","In Rot","Other","Old","Album"]
 repeat = [15,15,30,45,45]
 
   # Percentage of total tracks that a genre makes up. 
   # This was derived from the original "# My Radio #" playlist and the percentages I found each genre was taking up.
 genre_pct=[str(.16),str(.44),str(.27),str(.08),str(.05)]
+playlist_length=2500
 debug_level=0
+write_debug_to_file = True
 
-def main(dbug_lvl=debug_level,g_pct=genre_pct):  
+def main(dbug_lvl=debug_level,g_pct=genre_pct,playlist_nm=playlist_name,playlist_lgth=playlist_length):  
   # Use the above percentages to determine how many songs from each genre to include in this playlist.
-  nbr_of_genre_songs=[round(tot_nbr_of_songs*float(g_pct[0])),
-                      round(tot_nbr_of_songs*float(g_pct[1])),
-                      round(tot_nbr_of_songs*float(g_pct[2])),
-                      round(tot_nbr_of_songs*float(g_pct[3])),
-                      round(tot_nbr_of_songs*float(g_pct[4]))]
+  print("playlist_lgth=",playlist_lgth)
+  playlist_tot_songs=int(int(playlist_lgth)/4) # avg song is 4 minutes
+  nbr_of_genre_songs=[round(playlist_tot_songs*float(g_pct[0])),
+                      round(playlist_tot_songs*float(g_pct[1])),
+                      round(playlist_tot_songs*float(g_pct[2])),
+                      round(playlist_tot_songs*float(g_pct[3])),
+                      round(playlist_tot_songs*float(g_pct[4]))]
 
   # The eq list is used to compute the right spacing of genres in the playlist thus insuring it has the 
   # right number of tracks of each genre.
@@ -72,11 +58,27 @@ def main(dbug_lvl=debug_level,g_pct=genre_pct):
   tot_eq = [eq[0],eq[1],eq[2],eq[3],eq[4]]
 
   debug_level=dbug_lvl
+  if write_debug_to_file == True:
+    df = open("debug.log", "w")
+  playlist_name=playlist_nm
+
   #if __name__ == "__main__":
+  def debug_out(debug_val,debug_line):
+    
+    if debug_val <= debug_level:
+      tup1 = (debug_line)
+      strg = spc[debug_val]
+      for item in tup1:
+        item = str(item)
+        strg = strg + item + " "
+      if __name__ == "__main__":
+        print(strg)
+      if write_debug_to_file == True:
+        df.write(strg + "\n")
 
   debug_out(0,["# # # # # # # # # # # # # # # # # # # # # "])
-  debug_out(0,["# Creating playlist of", tot_nbr_of_minutes,"minutes."])
-  debug_out(0,["# Total Songs -",tot_nbr_of_songs])
+  debug_out(0,["# Creating playlist of", playlist_lgth,"minutes."])
+  debug_out(0,["# Total Songs -",playlist_tot_songs])
   debug_out(0,["# Debug Level -",debug_level])
   debug_out(0,["# # # # # # # # # # # # # # # # # # # # # "])
   debug_out(0,["# Genre Percentages: "])
@@ -122,7 +124,7 @@ def main(dbug_lvl=debug_level,g_pct=genre_pct):
   # Write file with entery for every track with the proper genre set.
   # # # # # # # # # # # #
   f1 = open("process_db_genre_fin_order.txt", "w")
-  for x in range(0,tot_nbr_of_songs):
+  for x in range(0,playlist_tot_songs):
       f1.write(check_a_row()+'\n')
   f1.close()
 
@@ -261,7 +263,7 @@ def main(dbug_lvl=debug_level,g_pct=genre_pct):
   # the last recently played song for that genre and then make sure the artist
   # doesn't fail the artist_last_played check and if all is good write it out to playlist.m3u
 
-  f2 = open("playlist.m3u", "w")
+  f2 = open(playlist_name+".m3u", "w")
   f2.write("#EXTM3U" + "\n")
 
 
@@ -288,6 +290,7 @@ def main(dbug_lvl=debug_level,g_pct=genre_pct):
   f2.close() # m3u file
   df.close() # Debug file
 
+  return(playlist_tot_songs,nbr_of_genre_songs)
 
 if __name__ == "__main__":
    main()

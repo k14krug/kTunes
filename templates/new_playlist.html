@@ -3,6 +3,8 @@
       <form method = "POST">
          <label for="playlist_name: ">Playlist Name</label><input type="text" name="playlist_name" value="{{ playlist_name }}"> </input>
          <br>
+         <label for="playlist_length: ">Playlist length in minutes</label><input type="text" name="playlist_length" value="{{ playlist_length }}"> </input>
+         <br>
          <br>
          <label for="latest_pct">Latest %:</label><input type="text" name="latest_pct" value="{{ latest_pct }}"> </input>
          <br>
@@ -18,4 +20,12 @@
 
          <button type="submit">Submit</button>
       </form>
+      <br>
+      {{ msg }}
+      <br>{{ total_songs }}
+      <br>{{ nbr_of_latest_songs }}
+      <br>{{ nbr_of_in_rot_songs }}
+      <br>{{ nbr_of_other_songs }}
+      <br>{{ nbr_of_old_songs }}
+      <br>{{ nbr_of_album_songs }}
 {% endblock %}
