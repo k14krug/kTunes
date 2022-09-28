@@ -1,6 +1,6 @@
 # kTunes
 
-Purpose: Use the iTunes Genre field to create playlists with a user defined percentage from each genre. The songs from each genre are merged together in a final playlist that also tries to minimuze repeating of artist. For example an artist from the first genre choice can only be played every 15 songs (see "Variable artist repeat interval" below for more detail). The final playlist will be ordered by least recently played per genre.
+Purpose: Provide an alternative to iTunes smartplaylist. Using the iTunes Genre field, create playlists with user defined percentages for each genre. The songs from each genre are merged together in a final playlist that also tries to minimuze repeating of artist. For example an artist from the first genre choice can only be played every 15 songs (see "Variable artist repeat interval" below for more detail). The final playlist will be ordered by least recently played per genre. The new playlist can be played with any app the reads *.m3u files but if you want to continue to make playlist based on least recently played date the playlist must be played through iTunes.
 
 ## Requirements: 
 - You use the "Genre" field in iTunes to classify music by catagories
