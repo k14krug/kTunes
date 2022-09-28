@@ -4,7 +4,6 @@ from flask import Flask,redirect, url_for, request, render_template
 from werkzeug.exceptions import abort
 import process_db
 
-# kkrug - variables prefixed with t_* are to help me remember these are being passed to a template.
 
 # Create your Flask app instance with the name "app". Pass it the special var __name__ that holds the name of the current Python module.
 # Often the python module is also named "app" but does not need to be. If you use another name then you need to tell flask
