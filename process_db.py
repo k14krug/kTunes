@@ -8,7 +8,7 @@ import sys
 
 write_debug_to_file = True
 if write_debug_to_file == True:
-  df = open("debug_out.txt", "w")
+  df = open("debug.log", "w")
 spc = {}
 spc[0] = ""
 spc[1] = ""
