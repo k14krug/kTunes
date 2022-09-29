@@ -48,7 +48,7 @@ outside of the flask app but I'd like to modified it to read in a parm file.
 - workflow_pre.sh - shell script to run the first three python modules. The third(app.py) will start the flask app and provide you with the local URL for the app.
 - workflow_post.sh - Copies your playlist to your itunes directory were you can use ImportM3U.vbs to import it to your itunes catalog.
 
-- requirements.txt - use **pip install -r requirements.txt** to install all modules required for this project
+- requirements.txt - use **pip install -r requirements.txt** to install all packages required for this project. Currently flask is the only package.
 
 ## Flask app sample screen print
 ![kTunes screen](https://user-images.githubusercontent.com/107451552/192881760-4221c58a-b2de-4b18-a0b1-755aeb20f217.png)
