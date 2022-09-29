@@ -24,10 +24,14 @@ The new playlist can be played with any app that reads *.m3u files but if you wa
 - In Explorer you must drop the playlist on top of the ImportM3U.vbs apple script
 
 ## Note
-This is my first Python project - it's quite rough. If you're an experienced programmer turn away now. I used VS Code(love it!) and virtualwrapper for my development environment.
+This is my first Python project - it's quite rough. If you're an experienced programmer turn away now. 
+
+I used VS Code(love it!) and virtualwrapper for my development environment.
+Here's a couple extensions to VS code that were helpful:
+- SQLite by alexcvzz
+- SQLite Viewer by Florian Klampfer
 
 ## Still needed
-- requirements.txt file
 - variable to specify iTunes directory
 - Batch mode - should be able to read a file with parms to create new playlist without having to go to the app to enter in data. "process_db.py" can be run
 outside of the flask app but I'd like to modified it to read in a parm file.
@@ -43,6 +47,8 @@ outside of the flask app but I'd like to modified it to read in a parm file.
 
 - workflow_pre.sh - shell script to run the first three python modules. The third(app.py) will start the flask app and provide you with the local URL for the app.
 - workflow_post.sh - Copies your playlist to your itunes directory were you can use ImportM3U.vbs to import it to your itunes catalog.
+
+- requirements.txt - use **pip install -r requirements.txt** to install all modules required for this project
 
 ## Flask app sample screen print
 ![kTunes screen](https://user-images.githubusercontent.com/107451552/192881760-4221c58a-b2de-4b18-a0b1-755aeb20f217.png)
