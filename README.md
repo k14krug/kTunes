@@ -40,12 +40,12 @@ outside of the flask app but I'd like to modified it to read in a parm file.
 - Variable artist repeat interval - Currently hard coded for each of the 5 genres (15,15,30,45,45). I want to paramertierize these. Here's more detail on how the repeat intermal works. Artist repeat takes into consideration the artist and the repeat interval for each of the 5 genre(categories). If an artist has a song in the first genre and another in the 5th genre and a song for that artist coming from the first genre (which has a repeat of 15) is added to the playlist and then another song for that artist is found but it's from 5th genre, it won't be added to the playlist till there's at least 44 other songs added.
 
 ##  Files
-- 01_create_sqlite_tbls.py - creates the sqlite table - duh!
-- 02_load_sqlite.py - loads the sqlite table with your itunes xml file
-- app.py - the flask app
-- process_db.py - this is the gutts of the processing
+- app.py - the flask app. Run this to create the DB, load the tables and run the flask app
+- create_sqlite_tbls.py - creates the sqlite table - duh! Called by load_xml if database does not exit
+- load_xml.py - loads the sqlite table with your itunes xml file. Called from app.py
+- process_db.py - this is the gutts of the processing. Called from app.py
 
-- workflow_pre.sh - shell script to run the first three python modules. The third(app.py) will start the flask app and provide you with the local URL for the app.
+- workflow_pre.sh - shell script to copy your itunes xml file to project directory and run the flask app which will provide you with the local URL for the app.
 - workflow_post.sh - Copies your playlist to your itunes directory were you can use ImportM3U.vbs to import it to your itunes catalog.
 
 - requirements.txt - use **pip install -r requirements.txt** to install all packages required for this project. Currently flask is the only package.
