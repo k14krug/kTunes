@@ -11,7 +11,7 @@ import process_db
 app = Flask(__name__)
 
 def get_db_connection():
-    conn = sqlite3.connect('iTunes.2.0.sqlite')
+    conn = sqlite3.connect('kTunes.sqlite')
     conn.row_factory = sqlite3.Row
     return conn
 
@@ -53,6 +53,7 @@ def disp_artist(artist):
       artist_tracks = get_artist_tracks(artist)
    return render_template('artists.html', t_tracks=artist_tracks, artist=artist)
 
+# From main screen if you choose create playlist, the form will post which allows process_db.py to be executed.
 @app.route('/newplaylist',methods = ['POST', 'GET'])
 def create_playlist_form():
    if request.method == "POST":
@@ -66,20 +67,30 @@ def create_playlist_form():
              ]
       playlist_name=request.form["playlist_name"]
       playlist_length=request.form["playlist_length"]
-      #genre_pct=[str(.16),str(.44),str(.27),str(.08),str(.05)]
-      total_songs,nbr_of_genre_songs=process_db.main(1,pcts,playlist_name,playlist_length)
-      nbr_of_latest_songs=nbr_of_genre_songs[0]
-      nbr_of_in_rot_songs=nbr_of_genre_songs[1]
-      nbr_of_other_songs=nbr_of_genre_songs[2]
-      nbr_of_album_songs=nbr_of_genre_songs[3]
-      nbr_of_old_songs=nbr_of_genre_songs[4]
+      create_recentadd_cat="No"
+      if request.form.get("x"):
+         create_recentadd_cat="Yes"
+         pct_of_latest=request.form["pct_of_latest"]
+      else:
+         pct_of_latest=0
+         #genre_pct=[str(.16),str(.44),str(.27),str(.08),str(.05)]
+      
+      # Calling process_db.main
+      total_songs,nbr_of_genre_songs=process_db.main(1,pcts,playlist_name,playlist_length,pct_of_latest)
+      nbr_of_recentadd_songs=nbr_of_genre_songs[0]
+      nbr_of_latest_songs=nbr_of_genre_songs[1]
+      nbr_of_in_rot_songs=nbr_of_genre_songs[2]
+      nbr_of_other_songs=nbr_of_genre_songs[3]
+      nbr_of_album_songs=nbr_of_genre_songs[4]
+      nbr_of_old_songs=nbr_of_genre_songs[5]
       playlist_name="<new playlist_name>"
-      #playlist_length=request.form["playlist_length"]
       latest_pct=request.form["latest_pct"]
       in_rot_pct=request.form["in_rot_pct"]
       other_pct=request.form["other_pct"]
       old_pct=request.form["old_pct"]
       album_pct=request.form["album_pct"]
+      #create_recentadd_cat=request.form.get("x")
+      pct_of_latest=request.form["pct_of_latest"]
       msg="Playlist "+request.form["playlist_name"]+" (re)created with the following song counts"
       return render_template("new_playlist.html",playlist_name=playlist_name, 
                                                  playlist_length=playlist_length,
@@ -88,8 +99,11 @@ def create_playlist_form():
                                                  other_pct=other_pct,
                                                  old_pct=old_pct,
                                                  album_pct=album_pct,
+                                                 create_recentadd_cat=create_recentadd_cat,
+                                                 pct_of_latest=pct_of_latest,
                                                  msg=msg,
                                                  total_songs=" Total Songs - "+ str(total_songs),
+                                                 nbr_of_recentadd_songs="  Recent Add - "+ str(nbr_of_recentadd_songs),
                                                  nbr_of_latest_songs="  Latest - "+ str(nbr_of_latest_songs),
                                                  nbr_of_in_rot_songs="  In Rot - "+ str(nbr_of_in_rot_songs),
                                                  nbr_of_other_songs="  Other - "+ str(nbr_of_other_songs),
@@ -98,11 +112,13 @@ def create_playlist_form():
    else:
       playlist_name="<new playlist_name>"
       playlist_length=2500
-      latest_pct=.16
-      in_rot_pct=.44
-      other_pct=.27
-      old_pct=.08
-      album_pct=.05
+      latest_pct=30
+      in_rot_pct=20
+      other_pct=10
+      old_pct=10
+      album_pct=10
+      create_recentadd_cat="No"
+      pct_of_latest=30
       return render_template("new_playlist.html",playlist_name=playlist_name, 
                                                  playlist_length=playlist_length,
                                                  latest_pct=latest_pct,
@@ -110,6 +126,8 @@ def create_playlist_form():
                                                  other_pct=other_pct,
                                                  old_pct=old_pct,
                                                  album_pct=album_pct,
+                                                 create_recentadd_cat=create_recentadd_cat,
+                                                 pct_of_latest=pct_of_latest,
                                                  msg="Enter data and hit Submit to create new playlist")
 
 @app.route('/result',methods = ['POST', 'GET'])
@@ -144,4 +162,4 @@ def login():
       return redirect(url_for('success',playlist_tot_songs = tot_nbr))
 
 if __name__ == '__main__':
-    app.run()
+    app.run(debug=True)
