@@ -17,7 +17,7 @@ spc[5] = "    "
 
 cnt=0
 genre=""
-recent_add="Yes"
+create_recentadd_cat="Yes"
 date_added=datetime.now() - timedelta(days=180)
 playlist_name="playlist"
 
@@ -31,26 +31,39 @@ track_cnt=[0,0,0,0,0,0]
 
   # Percentage of total tracks that a genre makes up. 
   # This was derived from the original "# My Radio #" playlist and the percentages I found each genre was taking up.
-genre_pct=[str(30),str(20),str(20),str(10),str(10),str(10)]
+genre_pct=[str(0),str(50),str(20),str(10),str(10),str(10)]
 playlist_length=1000
 debug_level=0
 write_debug_to_file = True
 
-def main(dbug_lvl=debug_level,g_pct=genre_pct,playlist_nm=playlist_name,playlist_lgth=playlist_length,recnt_add=recent_add):  
+def main(dbug_lvl=debug_level,g_pct=genre_pct,playlist_nm=playlist_name,playlist_lgth=playlist_length,create_rcntadd_cat=create_recentadd_cat):  
   # Use the above percentages to determine how many songs from each genre to include in this playlist.
-  #print("playlist_lgth=",playlist_lgth)
+  print("create_rcntadd_cat=",create_rcntadd_cat)
+  #exit()
   playlist_tot_songs=int(int(playlist_lgth)/4) # avg song is 4 minutes
-  nbr_of_genre_songs=[round(playlist_tot_songs*float(g_pct[0])/100),
+  if create_rcntadd_cat == "Yes":
+    nbr_of_genre_songs=[round(playlist_tot_songs*float(10/100)),
+                      round(playlist_tot_songs*float(g_pct[0])/100),
                       round(playlist_tot_songs*float(g_pct[1])/100),
                       round(playlist_tot_songs*float(g_pct[2])/100),
                       round(playlist_tot_songs*float(g_pct[3])/100),
-                      round(playlist_tot_songs*float(g_pct[4])/100),
-                      round(playlist_tot_songs*float(g_pct[3])/100)]
+                      round(playlist_tot_songs*float(g_pct[4])/100)]
+  else:
+    nbr_of_genre_songs=[.01,
+                      round(playlist_tot_songs*float(g_pct[0])/100),
+                      round(playlist_tot_songs*float(g_pct[1])/100),
+                      round(playlist_tot_songs*float(g_pct[2])/100),
+                      round(playlist_tot_songs*float(g_pct[3])/100),
+                      round(playlist_tot_songs*float(g_pct[4])/100)]
 
   # The eq list is used to compute the right spacing of genres in the playlist thus insuring it has the 
   # right number of tracks of each genre.
-  eq = [100/nbr_of_genre_songs[0],100/nbr_of_genre_songs[1], 100/nbr_of_genre_songs[2], 100/nbr_of_genre_songs[3],100/nbr_of_genre_songs[4]]
-  tot_eq = [eq[0],eq[1],eq[2],eq[3],eq[4]]
+  print("nbr_of_genre_songs=",nbr_of_genre_songs)
+  print("g_pct=",g_pct)
+  print("playlist_tot_songs=",playlist_tot_songs)
+  print("debug_lvl=",dbug_lvl)
+  eq = [100/nbr_of_genre_songs[0],100/nbr_of_genre_songs[1], 100/nbr_of_genre_songs[2], 100/nbr_of_genre_songs[3],100/nbr_of_genre_songs[4],100/nbr_of_genre_songs[5]]
+  tot_eq = [eq[0],eq[1],eq[2],eq[3],eq[4],eq[5]]
 
   debug_level=dbug_lvl
   if write_debug_to_file == True:
@@ -78,17 +91,26 @@ def main(dbug_lvl=debug_level,g_pct=genre_pct,playlist_nm=playlist_name,playlist
         print(frmt.format(tupl[0],str(tupl[1]),str(tupl[2]),str(tupl[3]),str(tupl[4])))
       if write_debug_to_file == True:
         df.write(strg + "\n")
+  
  
   #  Connects to db
-  conn = sqlite3.connect('iTunes.2.0.sqlite')
+  conn = sqlite3.connect('kTunes.sqlite')
+
+  sql_stmnt = conn.cursor()
+
+  conn.commit
+  
+  debug_out(1,["Resetting RecentAdd to Latest:",date_added])
+  # If the RecentAdd switch had been set in an earlier run, need to switch back with this update
+  sql_stmnt.execute('''update tracks set genre = 'Latest'
+                         where genre = 'RecentAdd' COLLATE NOCASE''')
 
   genre_cur = conn.cursor()
   last_played_cur = conn.cursor()
-  sql_stmnt = conn.cursor()
- 
+
   debug_out(1,["create_recently_added_genre:",date_added])
-  if recent_add == "Yes":
-    genre_cur.execute('''update tracks set genre = 'RecentAdd'
+  if create_rcntadd_cat   == "Yes":
+    sql_stmnt.execute('''update tracks set genre = 'RecentAdd'
                          where genre = 'Latest' COLLATE NOCASE
                            and date_added >= ?''',(date_added,))
   for x in range(len(genres)):
@@ -105,8 +127,13 @@ def main(dbug_lvl=debug_level,g_pct=genre_pct,playlist_nm=playlist_name,playlist
   debug_out(0,["INFO","# # # # # # # # # # # # # # # # # # # # # "])
   debug_out(0,["INFO", "Genre","Pct",'PlylstSongs',"Tot Songs"])
   debug_out(0,["INFO", "----------","----",'-----------',"---------"])
+  #exit()
   for x in range(len(genres)):
-    debug_out(0,["INFO",genres[x],float(g_pct[x]),nbr_of_genre_songs[x],track_cnt[x]])
+    print("x=",x)
+    debug_out(0,["INFO",genres[x]])
+    #debug_out(0,["INFO",float(g_pct[x])])
+    debug_out(0,["INFO",nbr_of_genre_songs[x]])
+    debug_out(0,["INFO",track_cnt[x]])
 
   # # # # # # # #
   # The check_a_row funcition lays out the order of tracks based on the correct genre spacing to insure the right nbr
