@@ -1,6 +1,6 @@
 # Project specific stuff
 # iTunes_local_2.0
-iTunes.2.0.sqlite
+kTunes.sqlite
 *.m3u
 process_db_genre_fin_orders.txt
 # Byte-compiled / optimized / DLL files
