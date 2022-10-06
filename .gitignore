@@ -3,6 +3,7 @@
 kTunes.sqlite
 *.m3u
 process_db_genre_fin_order.txt
+test.py
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
