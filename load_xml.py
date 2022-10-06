@@ -5,7 +5,7 @@ import urllib.parse
 from os.path import isfile, getsize
 
 #  Connects to db
-DB="iTunes.2.0.sqlite"
+DB="kTunes.sqlite"
 
 
 create_db="Yes"
@@ -56,15 +56,17 @@ for entry in songs:
     count = lookup(entry, 'Play Count')
     rating = lookup(entry, 'Rating')
     last_play_dt = lookup(entry, 'Play Date UTC')
+    date_added = lookup(entry, 'Date Added')
+    
     #The following performs two functions
     # 1 - Takes the UTF-8 characters in the URL (like %20 for space) and converts it back to real characters
     # 2 - Removes th string file://localhost/
     location = urllib.parse.unquote(lookup(entry, 'Location')).replace("file://localhost/","")
 
     cur.execute('''INSERT OR REPLACE INTO Tracks
-        (song, artist,  album, genre, length, last_play_dt, cnt, rating, location ) 
-        VALUES ( ?, ?, ?, ?, ?, ?, ?, ?, ? )''', 
-        (name, artist, album,  genre, length, last_play_dt, count, rating, location))
+        (song, artist,  album, genre, length, last_play_dt, date_added, cnt, rating, location ) 
+        VALUES ( ?, ?, ?, ?, ?,?, ?, ?, ?, ? )''', 
+        (name, artist, album,  genre, length, last_play_dt, date_added, count, rating, location))
 
     song_count += 1
 
@@ -101,6 +103,7 @@ cur.execute('''insert into artist_last_played
 #Ends transaction and make permanent all changes performed in the transaction
 
 conn.commit()
+conn.close()
 
 # Prints out how many songs found compaired to songs entered into db
 print('Found {} songs in {}.'.format((len(songs)), doc))

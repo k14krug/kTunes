@@ -1,6 +1,6 @@
 import sqlite3
 
-conn = sqlite3.connect('iTunes.2.0.sqlite')
+conn = sqlite3.connect('kTunes.sqlite')
 cur = conn.cursor()
 
 
@@ -26,6 +26,7 @@ CREATE TABLE Tracks (
     genre text,
     length INTEGER,
     last_play_dt DATE,
+    date_added date,
     rating INTEGER,
     location TEXT,
     cnt INTEGER,
