@@ -37,7 +37,7 @@ debug_level=0
 write_debug_to_file = True
 
 def debug_out(debug_val,debug_line):
-    #print("debug val=",debug_val,"debug line",debug_line)
+#    print("debug val=",debug_val,"debug line",debug_line)
     if debug_val <= debug_level:
       i=0
       tupl = (debug_line)
@@ -46,7 +46,7 @@ def debug_out(debug_val,debug_line):
         item = str(tupl[x])
         strg = strg + item + " "
       if __name__ == "__main__":
-    #    print("debug val=",debug_val,"debug line",debug_line)
+        #print("debug val=",debug_val,"debug line",debug_line)
         tupl_nbr_of_vals= len(tupl)
         if tupl_nbr_of_vals<5:
           for i in range(tupl_nbr_of_vals, 6):
@@ -58,7 +58,7 @@ def debug_out(debug_val,debug_line):
         df.write(strg + "\n")
   
 def main(dbug_lvl=debug_level,g_pct=genre_pct,playlist_nm=playlist_name,playlist_lgth=playlist_length,create_rcntadd_cat=create_recentadd_cat):  
-  global df
+  global df, debug_level
   debug_level=dbug_lvl
   if write_debug_to_file == True:
     df = open("debug.log", "w")
@@ -72,6 +72,12 @@ def main(dbug_lvl=debug_level,g_pct=genre_pct,playlist_nm=playlist_name,playlist
   conn = sqlite3.connect('kTunes.sqlite')
 
   sql_stmnt = conn.cursor()
+
+  
+  debug_out(1,["Resetting RecentAdd to Latest:",date_added])
+  # If the RecentAdd switch had been set in an earlier run, need to switch back with this update
+  sql_stmnt.execute('''update tracks set genre = 'Latest'
+                         where genre = 'RecentAdd' COLLATE NOCASE''')
 
   debug_out(1,["create_recently_added_genre:",date_added])
   if create_rcntadd_cat   == "Yes":
@@ -124,15 +130,6 @@ def main(dbug_lvl=debug_level,g_pct=genre_pct,playlist_nm=playlist_name,playlist
   playlist_name=playlist_nm
 
   #if __name__ == "__main__":
-  
- 
-
-  
-  debug_out(1,["Resetting RecentAdd to Latest:",date_added])
-  # If the RecentAdd switch had been set in an earlier run, need to switch back with this update
-  sql_stmnt.execute('''update tracks set genre = 'Latest'
-                         where genre = 'RecentAdd' COLLATE NOCASE''')
-
   genre_cur = conn.cursor()
   last_played_cur = conn.cursor()
 
@@ -158,14 +155,24 @@ def main(dbug_lvl=debug_level,g_pct=genre_pct,playlist_nm=playlist_name,playlist
   # the genre percenatages to see if this would mess the formula up.
   # # # # # # # #
   def check_a_row():
-    for x in range(5):
-      amt=int(tot_eq[x])
-      if amt<=tot_eq[0] and amt<=tot_eq[1] and amt<=tot_eq[2] and amt<=tot_eq[3] and amt<=tot_eq[4]:
-          tot_eq[x]=tot_eq[x] + eq[x]
-          debug_out(2,["check_a_row" , genres[x], tot_eq[x] ])
-          break
+    if create_rcntadd_cat == "Yes":
+      for x in range(6):
+        amt=int(tot_eq[x])
+        if amt<=tot_eq[0] and amt<=tot_eq[1] and amt<=tot_eq[2] and amt<=tot_eq[3] and amt<=tot_eq[4] and amt<=tot_eq[5]:
+            tot_eq[x]=tot_eq[x] + eq[x]
+            debug_out(2,["check_a_row recentadd " , genres[x], tot_eq[x] ])
+            break
+    else:
+      for x in range(5):
+        y=x+1
+        amt=int(tot_eq[y])
+        if amt<=tot_eq[1] and amt<=tot_eq[2] and amt<=tot_eq[3] and amt<=tot_eq[4] and amt<=tot_eq[5]:
+            tot_eq[y]=tot_eq[y] + eq[y]
+            debug_out(2,["check_a_row no recentadd" , genres[y], tot_eq[y] ])
+            x = x + 1
+            break
     return_val=genres[x]
-    debug_out(1,["check_a_row, genre=",genres[x]])
+#    debug_out(1,["check_a_row, genre=",genres[x]])
     return(return_val)
 
   # # # # # # # # # # # #
@@ -340,4 +347,6 @@ def main(dbug_lvl=debug_level,g_pct=genre_pct,playlist_nm=playlist_name,playlist
   return(playlist_tot_songs,nbr_of_genre_songs)
 
 if __name__ == "__main__":
-   main()
+   main(dbug_lvl=0,g_pct=genre_pct,playlist_nm=playlist_name,playlist_lgth=playlist_length,create_rcntadd_cat="Yes")  
+  
+   
