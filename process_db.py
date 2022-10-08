@@ -21,6 +21,7 @@ genre=""
 create_recentadd_cat="No"
 date_added=datetime.now() - timedelta(days=180)
 playlist_name="playlist"
+create_playlist="Yes"
 
 # Here we defines the genres were using and then start
 # defining values to associate with them, like artist "repeat".
@@ -57,9 +58,15 @@ def debug_out(debug_val,debug_line):
       if write_debug_to_file == True:
         df.write(strg + "\n")
   
-def main(dbug_lvl=debug_level,g_pct=genre_pct,playlist_nm=playlist_name,playlist_lgth=playlist_length,create_rcntadd_cat=create_recentadd_cat):  
-  global df, debug_level
+def main(dbug_lvl=debug_level,
+        g_pct=genre_pct,
+        playlist_nm=playlist_name,
+        playlist_lgth=playlist_length,
+        create_rcntadd_cat=create_recentadd_cat,
+        create_plylist=create_playlist):  
+  global df, debug_level, create_playlist
   debug_level=dbug_lvl
+  create_playlist=create_plylist
   if write_debug_to_file == True:
     df = open("debug.log", "w")
 
@@ -126,6 +133,9 @@ def main(dbug_lvl=debug_level,g_pct=genre_pct,playlist_nm=playlist_name,playlist
     eq = [0, 100/nbr_of_genre_songs[1],100/nbr_of_genre_songs[2], 100/nbr_of_genre_songs[3],100/nbr_of_genre_songs[4],100/nbr_of_genre_songs[5]]
   
   tot_eq = [eq[0],eq[1],eq[2],eq[3],eq[4],eq[5]]
+
+  if create_playlist == 'No':
+    return(playlist_tot_songs,nbr_of_genre_songs)
 
   playlist_name=playlist_nm
 
@@ -347,6 +357,6 @@ def main(dbug_lvl=debug_level,g_pct=genre_pct,playlist_nm=playlist_name,playlist
   return(playlist_tot_songs,nbr_of_genre_songs)
 
 if __name__ == "__main__":
-   main(dbug_lvl=0,g_pct=genre_pct,playlist_nm=playlist_name,playlist_lgth=playlist_length,create_rcntadd_cat="Yes")  
+   main(dbug_lvl=0,g_pct=genre_pct,playlist_nm=playlist_name,playlist_lgth=playlist_length,create_rcntadd_cat="Yes",create_plylist="Yes")  
   
    

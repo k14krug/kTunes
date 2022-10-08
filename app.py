@@ -67,6 +67,7 @@ def create_playlist_form():
              ]
       playlist_name=request.form["playlist_name"]
       playlist_length=request.form["playlist_length"]
+      create_playlist=request.form["create_playlist"]
       create_recentadd_cat="No"
       if request.form.get("x"):
          create_recentadd_cat="Yes"
@@ -76,7 +77,7 @@ def create_playlist_form():
          #genre_pct=[str(.16),str(.44),str(.27),str(.08),str(.05)]
       
       # Calling process_db.main
-      total_songs,nbr_of_genre_songs=process_db.main(1,pcts,playlist_name,playlist_length,pct_of_latest)
+      total_songs,nbr_of_genre_songs=process_db.main(1,pcts,playlist_name,playlist_length,pct_of_latest,create_playlist)
       nbr_of_recentadd_songs=nbr_of_genre_songs[0]
       nbr_of_latest_songs=nbr_of_genre_songs[1]
       nbr_of_in_rot_songs=nbr_of_genre_songs[2]
