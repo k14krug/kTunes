@@ -71,7 +71,7 @@ def main(dbug_lvl=debug_level,
     df = open("debug.log", "w")
 
   # Use the above percentages to determine how many songs from each genre to include in this playlist.
-  print("create_rcntadd_cat=",create_rcntadd_cat)
+  print("create_rcntadd_cat=",create_rcntadd_cat,"`debug_level=",debug_level)
   #exit()
   playlist_tot_songs=int(int(playlist_lgth)/4) # avg song is 4 minutes
   # 
@@ -134,7 +134,10 @@ def main(dbug_lvl=debug_level,
   
   tot_eq = [eq[0],eq[1],eq[2],eq[3],eq[4],eq[5]]
 
-  if create_playlist == 'No':
+  if create_playlist != 'Yes':
+    conn.commit()
+    conn.close()
+    df.close() # Debug file
     return(playlist_tot_songs,nbr_of_genre_songs)
 
   playlist_name=playlist_nm
@@ -147,6 +150,8 @@ def main(dbug_lvl=debug_level,
   debug_out(0,["INFO","Plylst Lngth", playlist_lgth, "minutes."])
   debug_out(0,["INFO","Total Songs", playlist_tot_songs])
   debug_out(0,["INFO","Debug Level", debug_level])
+  debug_out(0,["INFO","Create Playlist", create_playlist])
+  
   debug_out(0,["INFO","# # # # # # # # # # # # # # # # # # # # # "])
   debug_out(0,["INFO", "Genre","Pct",'PlylstSongs',"Tot Songs"])
   debug_out(0,["INFO", "----------","----",'-----------',"---------"])
@@ -351,7 +356,7 @@ def main(dbug_lvl=debug_level,
 
   f1.close() # process_db_genre_fin_order.txt
   f2.close() # m3u file
-  f3.close() # m3u file
+  f3.close() # m3u debug file
   df.close() # Debug file
 
   return(playlist_tot_songs,nbr_of_genre_songs)

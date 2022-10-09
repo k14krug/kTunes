@@ -59,6 +59,7 @@ def create_playlist_form():
    if request.method == "POST":
       
       pcts = [
+              float(0),
               float(request.form["latest_pct"]),
               float(request.form["in_rot_pct"]),
               float(request.form["other_pct"]),
@@ -67,7 +68,7 @@ def create_playlist_form():
              ]
       playlist_name=request.form["playlist_name"]
       playlist_length=request.form["playlist_length"]
-      create_playlist=request.form["create_playlist"]
+      create_playlist=request.form.getlist('create_playlist')
       create_recentadd_cat="No"
       if request.form.get("x"):
          create_recentadd_cat="Yes"
@@ -77,7 +78,7 @@ def create_playlist_form():
          #genre_pct=[str(.16),str(.44),str(.27),str(.08),str(.05)]
       
       # Calling process_db.main
-      total_songs,nbr_of_genre_songs=process_db.main(1,pcts,playlist_name,playlist_length,pct_of_latest,create_playlist)
+      total_songs,nbr_of_genre_songs=process_db.main(1,pcts,playlist_name,playlist_length,create_recentadd_cat,create_playlist)
       nbr_of_recentadd_songs=nbr_of_genre_songs[0]
       nbr_of_latest_songs=nbr_of_genre_songs[1]
       nbr_of_in_rot_songs=nbr_of_genre_songs[2]
@@ -90,7 +91,6 @@ def create_playlist_form():
       other_pct=request.form["other_pct"]
       old_pct=request.form["old_pct"]
       album_pct=request.form["album_pct"]
-      #create_recentadd_cat=request.form.get("x")
       pct_of_latest=request.form["pct_of_latest"]
       msg="Playlist "+request.form["playlist_name"]+" (re)created with the following song counts"
       return render_template("new_playlist.html",playlist_name=playlist_name, 
@@ -101,6 +101,7 @@ def create_playlist_form():
                                                  old_pct=old_pct,
                                                  album_pct=album_pct,
                                                  create_recentadd_cat=create_recentadd_cat,
+                                                 create_playlist="Yes",
                                                  pct_of_latest=pct_of_latest,
                                                  msg=msg,
                                                  total_songs=" Total Songs - "+ str(total_songs),
