@@ -95,7 +95,7 @@ def create_playlist_form():
       nbr_of_other_songs=nbr_of_genre_songs[3]
       nbr_of_album_songs=nbr_of_genre_songs[4]
       nbr_of_old_songs=nbr_of_genre_songs[5]
-      playlist_name="<new playlist_name>"
+      playlist_name=request.form["playlist_name"]
       latest_pct=request.form["latest_pct"]
       in_rot_pct=request.form["in_rot_pct"]
       other_pct=request.form["other_pct"]
@@ -124,20 +124,22 @@ def create_playlist_form():
                                                  nbr_of_old_songs="  Old - "+ str(nbr_of_old_songs),
                                                  nbr_of_album_songs="  Album - "+ str(nbr_of_album_songs))  
    else:
-      playlist_name="<new playlist_name>"
       playlist_length=2500
-      latest_pct=30
-      in_rot_pct=20
-      other_pct=10
-      old_pct=10
+      latest_pct=35
+      in_rot_pct=25
+      other_pct=15
+      old_pct=15
       album_pct=10
       weighting_pct=20
       create_recentadd_cat="No"
+      curr_dt = datetime.now() 
+      curr_dt = curr_dt.strftime("%m%d%y")
+      playlist_name="p" + "_" + curr_dt + "_" + str(latest_pct) + "." + str(in_rot_pct) + "." + str(other_pct) + "." + str(old_pct) + "." + str(album_pct)
       try:
         recentadd_dt
       except NameError:
-        dt = datetime.now() - timedelta(days=180)
-        recentadd_dt=dt.strftime("%Y-%m-%d")
+        six_months_ago = datetime.now() - timedelta(days=180)
+        recentadd_dt=six_months_ago.strftime("%Y-%m-%d")
       print("recentad_dt=",recentadd_dt)
       return render_template("new_playlist.html",playlist_name=playlist_name, 
                                                  playlist_length=playlist_length,

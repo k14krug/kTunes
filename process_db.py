@@ -164,8 +164,6 @@ def main(dbug_lvl=debug_level,
     conn.close()
     df.close() # Debug file
     return(playlist_tot_songs,nbr_of_genre_songs)
-  else:
-    print("Create playlist=",create_playlist)
 
   
   # # # # # # # #
