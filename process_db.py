@@ -36,6 +36,7 @@ genre_pct=[str(0),str(50),str(20),str(10),str(10),str(10)]
 playlist_length=1000
 debug_level=0
 write_debug_to_file = True
+weighting_pct=20
 
 def debug_out(debug_val,debug_line):
 #    print("debug val=",debug_val,"debug line",debug_line)
@@ -62,7 +63,7 @@ def main(dbug_lvl=debug_level,
         g_pct=genre_pct,
         playlist_nm=playlist_name,
         playlist_lgth=playlist_length,
-        create_rcntadd_cat=create_recentadd_cat,
+        create_rcntadd_cat=create_recentadd_cat, recentadd_dt=date_added, weighting_pct=weighting_pct,
         create_plylist=create_playlist):  
   global df, debug_level, create_playlist
   debug_level=dbug_lvl
@@ -81,16 +82,16 @@ def main(dbug_lvl=debug_level,
   sql_stmnt = conn.cursor()
 
   
-  debug_out(1,["Resetting RecentAdd to Latest:",date_added])
+  debug_out(1,["Resetting RecentAdd to Latest:",recentadd_dt])
   # If the RecentAdd switch had been set in an earlier run, need to switch back with this update
   sql_stmnt.execute('''update tracks set genre = 'Latest'
                          where genre = 'RecentAdd' COLLATE NOCASE''')
 
-  debug_out(1,["create_recently_added_genre:",date_added])
+  debug_out(1,["create_recently_added_genre:",recentadd_dt])
   if create_rcntadd_cat   == "Yes":
     sql_stmnt.execute('''update tracks set genre = 'RecentAdd'
                          where genre = 'Latest' COLLATE NOCASE
-                           and date_added >= ?''',(date_added,))
+                           and date_added >= ?''',(recentadd_dt,))
   for x in range(len(genres)):
     sql_stmnt.execute('''select count(*) from tracks
                            where genre=?''',(genres[x],))
@@ -106,7 +107,8 @@ def main(dbug_lvl=debug_level,
     # Then well add a 20% preference to the recentadd % so these will play more freaquently 
     #          recent add preferecne * (orig latest pct * recentadd track cnt / (recentadd track cnt = latest_track cnt))
     orig_recentadd_pct = float(g_pct[1]) * track_cnt[0] / (track_cnt[0] + track_cnt[1])
-    g_pct[0] = round(1.2 * float(g_pct[1]) * track_cnt[0] / (track_cnt[0] + track_cnt[1]))
+    weighting_pct=float("1." + weighting_pct)
+    g_pct[0] = round(weighting_pct * float(g_pct[1]) * track_cnt[0] / (track_cnt[0] + track_cnt[1]))
     g_pct[1] = round(float(g_pct[1]) - float(g_pct[0]))
   else:
     g_pct[0] = 0
@@ -123,10 +125,12 @@ def main(dbug_lvl=debug_level,
   
   # The eq list is used to compute the right spacing of genres in the playlist thus insuring it has the 
   # right number of tracks of each genre.
-  print("nbr_of_genre_songs=",nbr_of_genre_songs)
-  print("g_pct=",g_pct)
-  print("playlist_tot_songs=",playlist_tot_songs)
-  print("debug_lvl=",dbug_lvl)
+  
+  #print("nbr_of_genre_songs=",nbr_of_genre_songs)
+  #print("g_pct=",g_pct)
+  #print("playlist_tot_songs=",playlist_tot_songs)
+  #print("debug_lvl=",dbug_lvl)
+  
   if create_rcntadd_cat   == "Yes":
     eq = [100/nbr_of_genre_songs[0],100/nbr_of_genre_songs[1], 100/nbr_of_genre_songs[2], 100/nbr_of_genre_songs[3],100/nbr_of_genre_songs[4],100/nbr_of_genre_songs[5]]
   else:
@@ -134,23 +138,18 @@ def main(dbug_lvl=debug_level,
   
   tot_eq = [eq[0],eq[1],eq[2],eq[3],eq[4],eq[5]]
 
-  if create_playlist != 'Yes':
-    conn.commit()
-    conn.close()
-    df.close() # Debug file
-    return(playlist_tot_songs,nbr_of_genre_songs)
-
   playlist_name=playlist_nm
 
-  #if __name__ == "__main__":
   genre_cur = conn.cursor()
   last_played_cur = conn.cursor()
 
   
   debug_out(0,["INFO","Plylst Lngth", playlist_lgth, "minutes."])
   debug_out(0,["INFO","Total Songs", playlist_tot_songs])
-  debug_out(0,["INFO","Debug Level", debug_level])
+  debug_out(0,["INFO","Create recentadd", create_recentadd_cat])
+  debug_out(0,["INFO","Recentadd Date", recentadd_dt])
   debug_out(0,["INFO","Create Playlist", create_playlist])
+  debug_out(0,["INFO","Debug Level", debug_level])
   
   debug_out(0,["INFO","# # # # # # # # # # # # # # # # # # # # # "])
   debug_out(0,["INFO", "Genre","Pct",'PlylstSongs',"Tot Songs"])
@@ -159,6 +158,16 @@ def main(dbug_lvl=debug_level,
   for x in range(len(genres)):
     debug_out(0,["INFO",genres[x],float(g_pct[x]),nbr_of_genre_songs[x],track_cnt[x]])
 
+  
+  if create_playlist == 'No':
+    conn.commit()
+    conn.close()
+    df.close() # Debug file
+    return(playlist_tot_songs,nbr_of_genre_songs)
+  else:
+    print("Create playlist=",create_playlist)
+
+  
   # # # # # # # #
   # The check_a_row funcition lays out the order of tracks based on the correct genre spacing to insure the right nbr
   # of tracks for each genre are included. The calculation was first conceived in a spreasheet then
@@ -362,6 +371,8 @@ def main(dbug_lvl=debug_level,
   return(playlist_tot_songs,nbr_of_genre_songs)
 
 if __name__ == "__main__":
-   main(dbug_lvl=0,g_pct=genre_pct,playlist_nm=playlist_name,playlist_lgth=playlist_length,create_rcntadd_cat="Yes",create_plylist="Yes")  
+   main(dbug_lvl=0,g_pct=genre_pct,playlist_nm=playlist_name,playlist_lgth=playlist_length,create_rcntadd_cat="Yes",
+        recentadd_dt=date_added,
+        create_plylist="Yes")  
   
    
