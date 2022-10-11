@@ -1,8 +1,10 @@
-# kTunes - An alternative to iTunes Smart Playlists
+# kTunes - Creating a smarter playlist for iTunes
 
 ## Purpose
 
-Using the iTunes Genre field, create playlists with user defined percentages for each genre. The songs from each genre are merged together in a final playlist that also tries to minimuze repeating of artist. For example an artist from the first genre choice can only be played every 15 songs (see "Variable artist repeat interval" below for more detail). The final playlist will be ordered by least recently played per genre. 
+Using the iTunes Genre field, create playlists with user defined percentages for each genre. The songs from each genre are merged together based on these percentages into a playlist that also tries to minimuze repeating of artist. For example an artist from the first genre choice can only be played every 15 songs (see "Variable artist repeat interval" below for more detail). The final playlist will be ordered by least recently played per genre. 
+
+An additional dynamic(on-the-fly) category can be created of your recently added songs from the "Latest" genre.  If you check this option you also need to choose a "recent add" date and a weighting of these songs as compared to the remaining "Latest" songs. Choosing this option has no effect you actual iTunes catelog, only which songs are added to the playlist.
 
 The new playlist can be played with any app that reads *.m3u files but if you want to continue to make playlist based on least recently played date the playlist must be played through iTunes.
 
@@ -10,7 +12,15 @@ The new playlist can be played with any app that reads *.m3u files but if you wa
 - You use the "Genre" field in iTunes to classify music by catagories
 - You have enabled iTunes to share the catalog with 3rd parties. Doing so creates an xml file of your iTunes catalog that this project reads in.
 - You have apple script ImportM3U.vbs copied to your iTunes directory. This allows duplicates of songs to appear in a playlist. The basic iTunes interface will remove dups when you import a playlist.
-              
+
+## Default Genres(Categories)
+These are the categories I'm using in the genre field in my library. Since these are currently hard coded in the code I'll describe how I'm using them.
+- Latest - Songs I'm currently really enjoying or newly discovering. My playlist will have a significant amount of these songs - maybe 30-50%.
+- In Rotation - Songs that are still pretty new and want to be in pretty regular rotation but just not as much as they used to.
+- Other - Songs I still like but have been around for a while.
+- Old - These songs really date me.
+- Album - Some deep cuts that I like to hear now and then.
+
 ## Processing
 - The existing iTunes xml file is copied to the project directory then loaded to a sqlite table. All songs are loaded into a table in least recently played order
 - A flask web app presents a screen where you provide:
@@ -33,10 +43,8 @@ Here's a couple extensions to VS code that were helpful:
 
 ## Still needed
 - variable to specify iTunes directory
-- Batch mode - should be able to read a file with parms to create new playlist without having to go to the app to enter in data. "process_db.py" can be run
-outside of the flask app but I'd like to modified it to read in a parm file.
-- Variable genre(category) fields - Currently it's hard-coded with the 5 genres I use. I want to paramerterize the genre choices.
-
+- An Auto execution mode. A single step that runs the entire process including updating your iTunes playlist with a new track list.
+- A config file of parms. Currently the initial values of parms are hard coded in the script. The genres(categories) should also be user defined in this file. Currently its using the 5 categories I use. 
 - Variable artist repeat interval - Currently hard coded for each of the 5 genres (15,15,30,45,45). I want to paramertierize these. Here's more detail on how the repeat intermal works. Artist repeat takes into consideration the artist and the repeat interval for each of the 5 genre(categories). If an artist has a song in the first genre and another in the 5th genre and a song for that artist coming from the first genre (which has a repeat of 15) is added to the playlist and then another song for that artist is found but it's from 5th genre, it won't be added to the playlist till there's at least 44 other songs added.
 
 ##  Files
