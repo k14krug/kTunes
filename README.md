@@ -2,9 +2,9 @@
 
 ## Purpose
 
-Using the iTunes Genre field, create playlists with user defined percentages for each genre. The songs from each genre are merged together based on these percentages into a playlist that also tries to minimuze repeating of artist. For example an artist from the first genre choice can only be played every 15 songs (see "Variable artist repeat interval" below for more detail). The final playlist will be ordered by least recently played per genre. 
+Using the iTunes Genre field, create playlists with user defined percentages for each genre. The songs selected for each genre are ordered by least recently played. The final playlist merges all the genres together based on the percentages. The playlist also minimizes the repeating of artists. For example an artist should only be played every 15 songs (see "Variable artist repeat interval" below for more detail). 
 
-An additional dynamic(on-the-fly) category can be created of your recently added songs from the "Latest" genre.  If you check this option you also need to choose a "recent add" date and a weighting of these songs as compared to the remaining "Latest" songs. Choosing this option has no effect you actual iTunes catelog, only which songs are added to the playlist.
+An additional dynamic(on-the-fly) category can be created of your recently added songs from the "Latest" genre.  If you check this option you also need to choose a "recent add" date and a weighting of these songs as compared to the remaining "Latest" songs. Choosing this option has no effect on your actual iTunes catelog, only which songs are added to the playlist.
 
 The new playlist can be played with any app that reads *.m3u files but if you want to continue to make playlist based on least recently played date the playlist must be played through iTunes.
 
@@ -15,7 +15,7 @@ The new playlist can be played with any app that reads *.m3u files but if you wa
 
 ## Default Genres(Categories)
 These are the categories I'm using in the genre field in my library. Since these are currently hard coded in the code I'll describe how I'm using them.
-- Latest - Songs I'm currently really enjoying or newly discovering. My playlist will have a significant amount of these songs - maybe 30-50%.
+- Latest - Songs I'm currently really enjoying or newly discovering. My playlist will have a significant amount of these songs - maybe 30-50%. Using the "recent add" switch can give an even higher priority to the newest songs in this genre.
 - In Rotation - Songs that are still pretty new and want to be in pretty regular rotation but just not as much as they used to.
 - Other - Songs I still like but have been around for a while.
 - Old - These songs really date me.
