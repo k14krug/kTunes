@@ -64,8 +64,8 @@ def create_playlist_form():
               float(request.form["latest_pct"]),
               float(request.form["in_rot_pct"]),
               float(request.form["other_pct"]),
-              float(request.form["album_pct"]),
-              float(request.form["old_pct"])
+              float(request.form["old_pct"]),
+              float(request.form["album_pct"])
              ]
       playlist_name=request.form["playlist_name"]
       playlist_length=request.form["playlist_length"]
@@ -83,7 +83,7 @@ def create_playlist_form():
          weighting_pct=""
       
       # Calling process_db.main
-      total_songs,nbr_of_genre_songs=process_db.main(1,
+      total_songs,nbr_of_genre_songs=process_db.main(0,
                                                       pcts,
                                                       playlist_name,
                                                       playlist_length,

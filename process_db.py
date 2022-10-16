@@ -1,5 +1,6 @@
 from lib2to3.pgen2.pgen import DFAState
 from operator import truediv
+from re import X
 from telnetlib import theNULL
 import xml.etree.ElementTree as ET
 import sqlite3
@@ -36,35 +37,41 @@ genre_pct=[str(0),str(50),str(20),str(10),str(10),str(10)]
 playlist_length=1000
 debug_level=0
 write_debug_to_file = True
-weighting_pct=20
+weighting_pct=str(20)
 
 def debug_out(debug_val,debug_line):
 #    print("debug val=",debug_val,"debug line",debug_line)
     if debug_val <= debug_level:
-      i=0
+      #Gi=0
       tupl = (debug_line)
       strg = spc[debug_val]
-      for x in range(len(tupl)):
-        item = str(tupl[x])
-        strg = strg + item + " "
+      x = strg + tupl[0]
+      #print("debug val=",debug_val,"debug line",debug_line," tupl=",tupl,"tupl[0]=",tupl[0]," x=",x )
+      
+      tupl[0] = str(x)
+      tupl_nbr_of_vals= len(tupl)
+      if tupl_nbr_of_vals <= 11:
+        for i in range(tupl_nbr_of_vals, 12):
+          tupl=tupl + ["",]
+      else:
+         tupl[0] = "DEBUG ERROR" 
+         tupl[1] = "Too many debug items to display"
+         tupl[2] = debug_line
+      frmt="{:<20s}{:<20s}{:<12s}{:<12s}{:<12s}{:<12s}{:<12s}{:<12s}{:<12s}"
+      strg=frmt.format(tupl[0],str(tupl[1]),str(tupl[2]),str(tupl[3]),str(tupl[4]),str(tupl[5]),str(tupl[6]),str(tupl[7]),str(tupl[8]))
+      #print("Length of debug_out line=",len(strg),debug_line)
       if __name__ == "__main__":
-        #print("debug val=",debug_val,"debug line",debug_line)
-        tupl_nbr_of_vals= len(tupl)
-        if tupl_nbr_of_vals<5:
-          for i in range(tupl_nbr_of_vals, 6):
-            tupl=tupl + [" ",]
-        frmt="{:<20s}{:>12s}{:>12s}{:>12s}{:>12s}"
-        #print("tupl=",tupl,"frmt=",frmt)
-        print(frmt.format(tupl[0],str(tupl[1]),str(tupl[2]),str(tupl[3]),str(tupl[4])))
+        print(strg)
       if write_debug_to_file == True:
         df.write(strg + "\n")
-  
+        
 def main(dbug_lvl=debug_level,
         g_pct=genre_pct,
         playlist_nm=playlist_name,
         playlist_lgth=playlist_length,
         create_rcntadd_cat=create_recentadd_cat, recentadd_dt=date_added, weighting_pct=weighting_pct,
-        create_plylist=create_playlist):  
+        create_plylist=create_playlist,
+        ):  
   global df, debug_level, create_playlist
   debug_level=dbug_lvl
   create_playlist=create_plylist
@@ -72,8 +79,6 @@ def main(dbug_lvl=debug_level,
     df = open("debug.log", "w")
 
   # Use the above percentages to determine how many songs from each genre to include in this playlist.
-  print("create_rcntadd_cat=",create_rcntadd_cat,"`debug_level=",debug_level)
-  #exit()
   playlist_tot_songs=int(int(playlist_lgth)/4) # avg song is 4 minutes
   # 
   #  Connects to db
@@ -98,7 +103,7 @@ def main(dbug_lvl=debug_level,
     row=sql_stmnt.fetchone()
     track_cnt[x]=row[0]
   if create_rcntadd_cat   == "Yes":
-    #print("g_pct[] before",g_pct)
+    print("g_pct[] before",g_pct)
     #print("track_cnt[]",track_cnt)
     # Above we changed some of the latest tracks to recent add tracks. Now were going to determine
     # what percentage of each of those genres to use. We'll first come up with their percentages as
@@ -106,7 +111,7 @@ def main(dbug_lvl=debug_level,
     # have 10 recentadd tracks and 20 latest tracks then the recentadd percentages would be 50 * 10 / (10 +20)
     # Then well add a 20% preference to the recentadd % so these will play more freaquently 
     #          recent add preferecne * (orig latest pct * recentadd track cnt / (recentadd track cnt = latest_track cnt))
-    orig_recentadd_pct = float(g_pct[1]) * track_cnt[0] / (track_cnt[0] + track_cnt[1])
+    #orig_recentadd_pct = float(g_pct[1]) * track_cnt[0] / (track_cnt[0] + track_cnt[1])
     weighting_pct=float("1." + weighting_pct)
     g_pct[0] = round(weighting_pct * float(g_pct[1]) * track_cnt[0] / (track_cnt[0] + track_cnt[1]))
     g_pct[1] = round(float(g_pct[1]) - float(g_pct[0]))
@@ -126,11 +131,6 @@ def main(dbug_lvl=debug_level,
   # The eq list is used to compute the right spacing of genres in the playlist thus insuring it has the 
   # right number of tracks of each genre.
   
-  #print("nbr_of_genre_songs=",nbr_of_genre_songs)
-  #print("g_pct=",g_pct)
-  #print("playlist_tot_songs=",playlist_tot_songs)
-  #print("debug_lvl=",dbug_lvl)
-  
   if create_rcntadd_cat   == "Yes":
     eq = [100/nbr_of_genre_songs[0],100/nbr_of_genre_songs[1], 100/nbr_of_genre_songs[2], 100/nbr_of_genre_songs[3],100/nbr_of_genre_songs[4],100/nbr_of_genre_songs[5]]
   else:
@@ -146,12 +146,12 @@ def main(dbug_lvl=debug_level,
   
   debug_out(0,["INFO","Plylst Lngth", playlist_lgth, "minutes."])
   debug_out(0,["INFO","Total Songs", playlist_tot_songs])
-  debug_out(0,["INFO","Create recentadd", create_recentadd_cat])
+  debug_out(0,["INFO","Create recentadd", create_rcntadd_cat])
   debug_out(0,["INFO","Recentadd Date", recentadd_dt])
   debug_out(0,["INFO","Create Playlist", create_playlist])
   debug_out(0,["INFO","Debug Level", debug_level])
   
-  debug_out(0,["INFO","# # # # # # # # # # # # # # # # # # # # # "])
+  debug_out(0,["INFO", "# # # # # # # # # # # # # # # # # # # # # ","x"])
   debug_out(0,["INFO", "Genre","Pct",'PlylstSongs',"Tot Songs"])
   debug_out(0,["INFO", "----------","----",'-----------',"---------"])
   #exit()
@@ -229,7 +229,6 @@ def main(dbug_lvl=debug_level,
   # # # # # # # 
   def check_artist_repeat():
     global artist, artist_last_played,last_played
-    debug_out(4,["check_artist_repeat:",artist,genre,cnt,last_played])
     last_played_cur.execute('''select g.last_played, genre, a.last_played
                                 from artist_last_played  g
                                     ,(select max(last_played) last_played from artist_last_played 
@@ -238,7 +237,8 @@ def main(dbug_lvl=debug_level,
                                   and genre=?'''
                                 ,(artist, artist,genre,))
     row=last_played_cur.fetchone()
-    debug_out(4,[" Selected row from artist_last_played - ",row])
+    debug_out(4,["check_artist_repeat:","artist:",artist,"genre:",genre,cnt,"last_played",last_played,row])
+    debug_out(4,["  artist_last_played row(artists last_played|genre|artists genre last_played) =:",row])
     
     if row is None:
       #Really Not sure why the above select would not return a row. The Artist_last_played
@@ -260,7 +260,9 @@ def main(dbug_lvl=debug_level,
         f2.write(line1 + "\n")
         f2.write(location + "\n")
         if debug_level>0:
-          f3.write(genre + "," + artist + " - " + song + "," + str(length) + "\n")
+          frmt="{:<10s}{:<42s}{:<32s}{:<12s}"
+          f3.write(frmt.format("#" + genre,"#" + artist,"#" + song,"#" + str(length) + "\n"))
+          #f3.write(genre + "," + artist + " - " + song + "," + str(length) + "\n")
         artist_last_played=cnt+1
         sql_stmnt.execute('''update artist_last_played 
                                     set last_played = ?
@@ -277,6 +279,7 @@ def main(dbug_lvl=debug_level,
 
   def open_genre_track_cursors(genre):
     #This is the cursor of all the tracks for the genre we're trying to find a track for. 
+    #We're only going to pull one track each time we open this cursor but oh well.
     debug_out(4,["open_genre_track_cursors:",genre,cnt])
 
     genre_cur.execute('''select song, artist, last_play_dt, last_played, rating, length, repeat_cnt, location 
@@ -296,7 +299,7 @@ def main(dbug_lvl=debug_level,
   def process_genre_track(cnt):
     global artist, length, song, location, genre_repeat, last_played
     return_val=False
-    debug_out(2,["process_genre_track:",cnt, genre,return_val])
+    debug_out(2,["process_genre_track"])
     open_genre_track_cursors(genre)
     # If a genre doesn't have enough songs to match nbr_of_<genre>_songs then when we get to the end we need to reset that
     # genre and start from its beginning.
@@ -312,6 +315,8 @@ def main(dbug_lvl=debug_level,
     genre_repeat=repeat[genre_idx]
     # continue to call check_artist_repeat till if finds a song that passes the repeat test 
     if check_artist_repeat() == True:
+      debug_out(3,["Failed artist repeat - Need to find another "+ genre + "record"])
+    
       # We failed the artist repeat so set last_played so this artist won't be included till its time again
       sql_stmnt.execute('''update tracks set last_played=?
                           where artist= ?
@@ -320,6 +325,8 @@ def main(dbug_lvl=debug_level,
                         ''',(artist_last_played+genre_repeat+1,artist,genre))
       return_val=True
     else:
+      debug_out(3,["Passed artist repeat"])
+    
       # We found a valid track that can be added to the play list so update it in the tracks table so the song wont 
       # be eligible in the future
       sql_stmnt.execute('''update tracks set last_played=999999
@@ -327,11 +334,12 @@ def main(dbug_lvl=debug_level,
                               and artist = ?
                               and genre = ?;
                         ''',(song,artist,genre))
-    debug_out(2,["End process_genre_track - return_val=",return_val])
+    debug_out(2,[" End - return_val="+str(return_val)])
     conn.commit
-  #  END OF FETCH_GENRE_CUR
+    return(return_val)
 
   # MAIN LOOP
+  # All the functions have been defined, now gonna start doing some work
   # The process_db_genre_fin_order.txt file is an initialized version of the m3u file. Eash record
   # is a genre place holder for the right song track. Now need to find 
   # the last recently played song for that genre and then make sure the artist
@@ -350,7 +358,7 @@ def main(dbug_lvl=debug_level,
     genre=line.strip()
     debug_out(1,["Main Loop:",cnt, genre])
     while process_genre_track(cnt) == True:
-      debug_out(1,"End - Main Loop")
+      debug_out(1,[" End - Main Loop","hello"])
 
   debug_out(1,["End of process_db_genre_file_order.txt. cnt=",cnt])
 
@@ -367,10 +375,13 @@ def main(dbug_lvl=debug_level,
   df.close() # Debug file
 
   return(playlist_tot_songs,nbr_of_genre_songs)
+  
+  # End of "main" function
 
 if __name__ == "__main__":
-   main(dbug_lvl=0,g_pct=genre_pct,playlist_nm=playlist_name,playlist_lgth=playlist_length,create_rcntadd_cat="Yes",
+   main(dbug_lvl=3,g_pct=genre_pct,playlist_nm=playlist_name,playlist_lgth=playlist_length,create_rcntadd_cat="Yes",
         recentadd_dt=date_added,
+        weighting_pct=str(20),
         create_plylist="Yes")  
   
    
