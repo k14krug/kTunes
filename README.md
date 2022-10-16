@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Using the iTunes Genre field, create playlists with user defined percentages for each genre. The songs selected for each genre are ordered by least recently played. The final playlist merges all the genres together based on the percentages. The playlist also minimizes the repeating of artists. For example an artist should only be played every 15 songs (see "Variable artist repeat interval" below for more detail). 
+Using the iTunes Genre field you choose a percentage of each genre to include in your playlist. The songs selected for each genre are ordered by least recently played. The final playlist merges all the genres together based on the percentages. The playlist also minimizes the repeating of artists. For example an artist should only be played every 15 songs (see "Variable artist repeat interval" below for more detail). 
 
 An additional dynamic(on-the-fly) category can be created of your recently added songs from the "Latest" genre.  If you check this option you also need to choose a "recent add" date and a weighting of these songs as compared to the remaining "Latest" songs. Choosing this option has no effect on your actual iTunes catelog, only which songs are added to the playlist.
 
