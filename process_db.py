@@ -19,26 +19,29 @@ spc[5] = "    "
 
 cnt=0
 genre=""
-create_recentadd_cat="No"
-recentadd_date=datetime.now() - timedelta(days=180)
-playlist_name="playlist"
-create_playlist="Yes"
+df=""
 
 # Here we defines the cats we're using and then start defining values to associate with them like percentage to include and artist "repeat".
 # The artist repeat is applied to each cat, for example we only want to here an artist from the 2nd cat no more frequently then every 15 songs.
 # "definable_cats" is user customizable for the genres you use in your itunes catelog
 definable_cats = ["Latest","In Rot","Other","Old","Album"]
 recentadd_cat = ["RecentAdd"] 
-cats = recentadd_cat + definable_cats
 repeat = [15,15,15,30,45,4]
 track_cnt=[0,0,0,0,0,0]
 
-# Percentage of total tracks that a genre makes up. 
-c_pct=[str(0),str(50),str(20),str(10),str(10),str(10)]
-playlist_length=1000
+# default values for parms passed in main(). 
 debug_level=0
-write_debug_to_file = True
+cats = recentadd_cat + definable_cats
+c_pct=[str(0),str(50),str(20),str(10),str(10),str(10)]
+playlist_name="playlist"
+playlist_length=1000
+create_recentadd_cat="No"
+recentadd_date=datetime.now() - timedelta(days=180)
 weightinc_pct=str(20)
+create_playlist="Yes"
+
+write_debug_to_file = True
+
 
 def debug_out(debug_val,debug_line):
 #    print("debug val=",debug_val,"debug line",debug_line)
@@ -67,7 +70,7 @@ def debug_out(debug_val,debug_line):
         df.write(strg + "\n")
         
 def initialize_things():
-  global df, weightinc_pct, playlist_tot_songs, tot_eq, eq, sql_stmnt, cat_cursor, last_played_cur, conn, nbr_of_cat_songs
+  global  weightinc_pct, playlist_tot_songs, tot_eq, eq, sql_stmnt, cat_cursor, last_played_cur, conn, nbr_of_cat_songs, df
   if write_debug_to_file == True:
     df = open("debug.log", "w")
 
@@ -160,7 +163,7 @@ def main(dbug_lvl=debug_level,
         create_rcntadd_cat=create_recentadd_cat, recentadd_dt=recentadd_date, w_pct=weightinc_pct,
         create_plylist=create_playlist,
         ):  
-  global df, debug_level, create_playlist,playlist_length, recentadd_date, create_recentadd_cat, c_pct, weightinc_pct
+  global  debug_level, create_playlist,playlist_length, recentadd_date, create_recentadd_cat, c_pct, weightinc_pct
   debug_level=dbug_lvl
   playlist_length=playlist_lgth
   recentadd_date=recentadd_dt
@@ -168,7 +171,6 @@ def main(dbug_lvl=debug_level,
   c_pct=pct
   weightinc_pct=w_pct
   playlist_name=playlist_nm
-  df=""
 
   create_playlist=create_plylist
   cats=g_cats
@@ -327,7 +329,7 @@ def main(dbug_lvl=debug_level,
     
     debug_out(2,[" End - return_val="+str(return_val)])
     conn.commit
-    return(return_val)
+    return(return_val) # End process_cat_track function
 
   # MAIN LOOP
   # All the functions have been defined, now gonna start doing some work
