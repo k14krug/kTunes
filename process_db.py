@@ -20,7 +20,7 @@ spc[5] = "    "
 cnt=0
 genre=""
 create_recentadd_cat="No"
-date_added=datetime.now() - timedelta(days=180)
+recentadd_date=datetime.now() - timedelta(days=180)
 playlist_name="playlist"
 create_playlist="Yes"
 
@@ -34,11 +34,11 @@ repeat = [15,15,15,30,45,4]
 track_cnt=[0,0,0,0,0,0]
 
 # Percentage of total tracks that a genre makes up. 
-cat_pct=[str(0),str(50),str(20),str(10),str(10),str(10)]
+c_pct=[str(0),str(50),str(20),str(10),str(10),str(10)]
 playlist_length=1000
 debug_level=0
 write_debug_to_file = True
-weighting_pct=str(20)
+weightinc_pct=str(20)
 
 def debug_out(debug_val,debug_line):
 #    print("debug val=",debug_val,"debug line",debug_line)
@@ -66,23 +66,13 @@ def debug_out(debug_val,debug_line):
       if write_debug_to_file == True:
         df.write(strg + "\n")
         
-def main(dbug_lvl=debug_level,
-        g_cats=cats,
-        g_pct=cat_pct,
-        playlist_nm=playlist_name,
-        playlist_lgth=playlist_length,
-        create_rcntadd_cat=create_recentadd_cat, recentadd_dt=date_added, weighting_pct=weighting_pct,
-        create_plylist=create_playlist,
-        ):  
-  global df, debug_level, create_playlist
-  debug_level=dbug_lvl
-  create_playlist=create_plylist
-  cats=g_cats
+def initialize_things():
+  global df, weightinc_pct, playlist_tot_songs, tot_eq, eq, sql_stmnt, cat_cursor, last_played_cur, conn, nbr_of_cat_songs
   if write_debug_to_file == True:
     df = open("debug.log", "w")
 
   # Use the above percentages to determine how many songs from each cat to include in this playlist.
-  playlist_tot_songs=int(int(playlist_lgth)/4) # avg song is 4 minutes
+  playlist_tot_songs=int(int(playlist_length)/4) # avg song is 4 minutes
   # 
   #  Connects to db
   conn = sqlite3.connect('kTunes.sqlite')
@@ -91,16 +81,16 @@ def main(dbug_lvl=debug_level,
   cat_cursor = conn.cursor()
   last_played_cur = conn.cursor()
   
-  debug_out(1,["Resetting RecentAdd to Latest:",recentadd_dt])
+  debug_out(1,["Resetting RecentAdd to Latest:",recentadd_date])
   # If the RecentAdd switch had been set in an earlier run, need to switch back with this update
   sql_stmnt.execute('''update tracks set genre = 'Latest'
                          where genre = 'RecentAdd' COLLATE NOCASE''')
 
-  debug_out(1,["create_recently_added_genre:",recentadd_dt])
-  if create_rcntadd_cat   == "Yes":
+  debug_out(1,["create_recently_added_genre:",recentadd_date])
+  if create_recentadd_cat   == "Yes":
     sql_stmnt.execute('''update tracks set genre = 'RecentAdd'
                          where genre = 'Latest' COLLATE NOCASE
-                           and date_added >= ?''',(recentadd_dt,))
+                           and date_added >= ?''',(recentadd_date,))
 
   # get track cound for each category
   for x in range(len(cats)):
@@ -108,8 +98,8 @@ def main(dbug_lvl=debug_level,
                            where genre=?''',(cats[x],))
     row=sql_stmnt.fetchone()
     track_cnt[x]=row[0]
-  if create_rcntadd_cat   == "Yes":
-    print("g_pct[] before",g_pct)
+  if create_recentadd_cat   == "Yes":
+    print("c_pct[] before",c_pct)
     #print("track_cnt[]",track_cnt)
     # Above we changed some of the latest tracks to recent add tracks. Now were going to determine
     # what percentage of each of those cats to use. We'll first come up with their percentages as
@@ -117,40 +107,39 @@ def main(dbug_lvl=debug_level,
     # have 10 recentadd tracks and 20 latest tracks then the recentadd percentages would be 50 * 10 / (10 +20)
     # Then well add a 20% preference to the recentadd % so these will play more freaquently 
     #          recent add preferecne * (orig latest pct * recentadd track cnt / (recentadd track cnt = latest_track cnt))
-    #orig_recentadd_pct = float(g_pct[1]) * track_cnt[0] / (track_cnt[0] + track_cnt[1])
-    weighting_pct=float("1." + weighting_pct)
-    g_pct[0] = round(weighting_pct * float(g_pct[1]) * track_cnt[0] / (track_cnt[0] + track_cnt[1]))
-    g_pct[1] = round(float(g_pct[1]) - float(g_pct[0]))
+    #orig_recentadd_pct = float(c_pct[1]) * track_cnt[0] / (track_cnt[0] + track_cnt[1])
+    weightinc_pct=float("1." + weightinc_pct)
+    c_pct[0] = round(weightinc_pct * float(c_pct[1]) * track_cnt[0] / (track_cnt[0] + track_cnt[1]))
+    c_pct[1] = round(float(c_pct[1]) - float(c_pct[0]))
   else:
-    g_pct[0] = 0
+    c_pct[0] = 0
 
-  #print("g_pct[] after",g_pct,"orig_recentadd_pct=",orig_recentadd_pct)
-  #print("create_rcntadd_cat=",create_rcntadd_cat," Latest/recent %=",track_cnt[1], track_cnt[0], "gpct[0]=",g_pct[0], "gpct[1]=",g_pct[1])
+  #print("c_pct[] after",c_pct,"orig_recentadd_pct=",orig_recentadd_pct)
+  #print("create_recentadd_cat=",create_recentadd_cat," Latest/recent %=",track_cnt[1], track_cnt[0], "gpct[0]=",c_pct[0], "gpct[1]=",c_pct[1])
  
-  nbr_of_cat_songs= [round(playlist_tot_songs*float(g_pct[0])/100),
-                      round(playlist_tot_songs*float(g_pct[1])/100),
-                      round(playlist_tot_songs*float(g_pct[2])/100),
-                      round(playlist_tot_songs*float(g_pct[3])/100),
-                      round(playlist_tot_songs*float(g_pct[4])/100),
-                      round(playlist_tot_songs*float(g_pct[5])/100)]
+  nbr_of_cat_songs= [round(playlist_tot_songs*float(c_pct[0])/100),
+                      round(playlist_tot_songs*float(c_pct[1])/100),
+                      round(playlist_tot_songs*float(c_pct[2])/100),
+                      round(playlist_tot_songs*float(c_pct[3])/100),
+                      round(playlist_tot_songs*float(c_pct[4])/100),
+                      round(playlist_tot_songs*float(c_pct[5])/100)]
   
   # The eq list is used to compute the right spacing of cats in the playlist thus insuring it has the 
   # right number of tracks of each genre.
   
-  if create_rcntadd_cat   == "Yes":
+  if create_recentadd_cat   == "Yes":
     eq = [100/nbr_of_cat_songs[0],100/nbr_of_cat_songs[1], 100/nbr_of_cat_songs[2], 100/nbr_of_cat_songs[3],100/nbr_of_cat_songs[4],100/nbr_of_cat_songs[5]]
   else:
     eq = [0, 100/nbr_of_cat_songs[1],100/nbr_of_cat_songs[2], 100/nbr_of_cat_songs[3],100/nbr_of_cat_songs[4],100/nbr_of_cat_songs[5]]
   
   tot_eq = [eq[0],eq[1],eq[2],eq[3],eq[4],eq[5]]
 
-  playlist_name=playlist_nm
-
  
-  debug_out(0,["INFO","Plylst Lngth", playlist_lgth, "minutes."])
+ 
+  debug_out(0,["INFO","Plylst Lngth", playlist_length, "minutes."])
   debug_out(0,["INFO","Total Songs", playlist_tot_songs])
-  debug_out(0,["INFO","Create recentadd", create_rcntadd_cat])
-  debug_out(0,["INFO","Recentadd Date", recentadd_dt])
+  debug_out(0,["INFO","Create recentadd", create_recentadd_cat])
+  debug_out(0,["INFO","Recentadd Date", recentadd_date])
   debug_out(0,["INFO","Create Playlist", create_playlist])
   debug_out(0,["INFO","Debug Level", debug_level])
   
@@ -159,16 +148,38 @@ def main(dbug_lvl=debug_level,
   debug_out(0,["INFO", "----------","----",'-----------',"---------"])
   #exit()
   for x in range(len(cats)):
-    debug_out(0,["INFO",cats[x],float(g_pct[x]),nbr_of_cat_songs[x],track_cnt[x]])
+    debug_out(0,["INFO",cats[x],float(c_pct[x]),nbr_of_cat_songs[x],track_cnt[x]])
 
   
+  
+def main(dbug_lvl=debug_level,
+        g_cats=cats,
+        pct=c_pct,
+        playlist_nm=playlist_name,
+        playlist_lgth=playlist_length,
+        create_rcntadd_cat=create_recentadd_cat, recentadd_dt=recentadd_date, w_pct=weightinc_pct,
+        create_plylist=create_playlist,
+        ):  
+  global df, debug_level, create_playlist,playlist_length, recentadd_date, create_recentadd_cat, c_pct, weightinc_pct
+  debug_level=dbug_lvl
+  playlist_length=playlist_lgth
+  recentadd_date=recentadd_dt
+  create_recentadd_cat=create_rcntadd_cat
+  c_pct=pct
+  weightinc_pct=w_pct
+  playlist_name=playlist_nm
+  df=""
+
+  create_playlist=create_plylist
+  cats=g_cats
+  initialize_things()
   if create_playlist == 'No':
     conn.commit()
     conn.close()
     df.close() # Debug file
     return(playlist_tot_songs,nbr_of_cat_songs)
 
-  
+
   # # # # # # # #
   # This funcition lays out the order of tracks based on the correct cat spacing to insure the right nbr
   # of tracks for each cat are included. Once we finish writing out this file we'll reopened it for read 
@@ -178,7 +189,7 @@ def main(dbug_lvl=debug_level,
     f1 = open("process_db_cat_fin_order.txt", "w")
     for x in range(0,playlist_tot_songs):
 
-      if create_rcntadd_cat == "Yes":
+      if create_recentadd_cat == "Yes":
         for x in range(6):
           amt=int(tot_eq[x])
           if amt<=tot_eq[0] and amt<=tot_eq[1] and amt<=tot_eq[2] and amt<=tot_eq[3] and amt<=tot_eq[4] and amt<=tot_eq[5]:
@@ -375,7 +386,7 @@ if __name__ == "__main__":
   definable_cats=["Latest","In Rot","Other","Old","Damaged"]
   cats = recentadd_cat + definable_cats
   main(dbug_lvl=2,
-        g_cats=cats,g_pct=cat_pct,
+        g_cats=cats,pct=c_pct,
         playlist_nm=playlist_name,playlist_lgth=playlist_length,
-        create_rcntadd_cat="Yes", recentadd_dt=date_added, weighting_pct=str(20),
+        create_rcntadd_cat="Yes", recentadd_dt=recentadd_date, w_pct=str(20),
         create_plylist="Yes")  
