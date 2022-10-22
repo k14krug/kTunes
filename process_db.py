@@ -26,7 +26,7 @@ df=""
 # "definable_cats" is user customizable for the genres you use in your itunes catelog
 definable_cats = ["Latest","In Rot","Other","Old","Album"]
 recentadd_cat = ["RecentAdd"] 
-repeat = [15,15,15,30,45,4]
+repeat = [15,15,15,30,45,9]
 track_cnt=[0,0,0,0,0,0]
 
 # default values for parms passed in main(). 
@@ -73,7 +73,7 @@ def initialize_things():
   global  weightinc_pct, playlist_tot_songs, tot_eq, eq, sql_stmnt, cat_cursor, last_played_cur, conn, nbr_of_cat_songs, df
   if write_debug_to_file == True:
     df = open("debug.log", "w")
-
+  f2=""
   # Use the above percentages to determine how many songs from each cat to include in this playlist.
   playlist_tot_songs=int(int(playlist_length)/4) # avg song is 4 minutes
   # 
@@ -86,23 +86,22 @@ def initialize_things():
   
   debug_out(1,["Resetting RecentAdd to Latest:",recentadd_date])
   # If the RecentAdd switch had been set in an earlier run, need to switch back with this update
-  sql_stmnt.execute('''update tracks set genre = 'Latest'
-                         where genre = 'RecentAdd' COLLATE NOCASE''')
+  sql_stmnt.execute('''update tracks set cat = 'Latest'
+                         where cat = 'RecentAdd' COLLATE NOCASE''')
 
   debug_out(1,["create_recently_added_genre:",recentadd_date])
   if create_recentadd_cat   == "Yes":
-    sql_stmnt.execute('''update tracks set genre = 'RecentAdd'
-                         where genre = 'Latest' COLLATE NOCASE
+    sql_stmnt.execute('''update tracks set cat = 'RecentAdd'
+                         where cat = 'Latest' COLLATE NOCASE
                            and date_added >= ?''',(recentadd_date,))
 
   # get track cound for each category
   for x in range(len(cats)):
     sql_stmnt.execute('''select count(*) from tracks
-                           where genre=?''',(cats[x],))
+                           where cat=?''',(cats[x],))
     row=sql_stmnt.fetchone()
     track_cnt[x]=row[0]
   if create_recentadd_cat   == "Yes":
-    print("c_pct[] before",c_pct)
     #print("track_cnt[]",track_cnt)
     # Above we changed some of the latest tracks to recent add tracks. Now were going to determine
     # what percentage of each of those cats to use. We'll first come up with their percentages as
@@ -154,7 +153,159 @@ def initialize_things():
     debug_out(0,["INFO",cats[x],float(c_pct[x]),nbr_of_cat_songs[x],track_cnt[x]])
 
   
+# # # # # # # #
+# This funcition lays out the order of tracks based on the correct cat spacing to insure the right nbr
+# of tracks for each cat are included. Once we finish writing out this file we'll reopened it for read 
+# so we can start finding tracks to match the genre
+# # # # # # # #
+def  build_proces_db_cat_file():
+  f1 = open("process_db_cat_fin_order.txt", "w")
+  for x in range(0,playlist_tot_songs):
+
+    if create_recentadd_cat == "Yes":
+      for x in range(6):
+        amt=int(tot_eq[x])
+        if amt<=tot_eq[0] and amt<=tot_eq[1] and amt<=tot_eq[2] and amt<=tot_eq[3] and amt<=tot_eq[4] and amt<=tot_eq[5]:
+            tot_eq[x]=tot_eq[x] + eq[x]
+            debug_out(2,["check_a_row recentadd " , cats[x], tot_eq[x] ])
+            break
+    else:
+      for x in range(5):
+        y=x+1
+        amt=int(tot_eq[y])
+        if amt<=tot_eq[1] and amt<=tot_eq[2] and amt<=tot_eq[3] and amt<=tot_eq[4] and amt<=tot_eq[5]:
+            tot_eq[y]=tot_eq[y] + eq[y]
+            debug_out(2,["check_a_row no recentadd" , cats[y], tot_eq[y] ])
+            x = x + 1
+            break
+    #return_val=cats[x]
+    f1.write(cats[x] + '\n')
+  #  f1.write(check_a_row()+'\n')
+  f1.close()
+  return
+
+
+# # # # # # #
+# Determines if the current artist hasn't been played too recently based on 
+# Genre artist repeat interval
+# # # # # # # 
+def check_artist_repeat():
+  global artist, artist_last_played,last_played
+  last_played_cur.execute('''select g.last_played, cat, a.last_played
+                              from artist_last_played  g
+                                  ,(select max(last_played) last_played from artist_last_played 
+                                    where artist=?) a
+                              where artist=?
+                                and cat=?'''
+                              ,(artist, artist,genre,))
+  row=last_played_cur.fetchone()
+  debug_out(4,["check_artist_repeat:","artist:",artist,"genre:",genre,cnt,"last_played",last_played,row])
+  debug_out(4,["  artist_last_played row(artists last_played|genre|artists genre last_played) =:",row])
   
+  if row is None:
+    #Really Not sure why the above select would not return a row. The Artist_last_played
+    #is loaded in load_sqlite.py based on all tracks so it should be good to go
+    debug_out(0,"This shouldn't happen so I'm exiting - gonna have to debug this one")
+    exit()
+    insert_stmt='''insert into artist_last_played
+                (artist, cat, last_played)
+                values (?,?,?);''',(artist, genre, cnt)
+    sql_stmnt.execute(insert_stmt,(artist,genre,cnt))
+    conn.commit
+  else:
+    artist_cat_last_played = row[0]
+    artist_last_played = row[2]
+    debug_out(4,[artist," Loop cnt=",cnt," artist_cat_last_played=",artist_cat_last_played,"artist_last_played=",artist_last_played, genre,song, row])
+    if artist_last_played == 0 or artist_last_played + cat_repeat < cnt:
+      debug_out(5,["Valid track to write to playlist, row =",row])
+      line1='#EXTINF: ' + str(length) + ',' + artist + " - " + song 
+      f2.write(line1 + "\n")
+      f2.write(location + "\n")
+      if debug_level>0:
+        frmt="{:<10s}{:<42s}{:<32s}{:<12s}"
+        f3.write(frmt.format("#" + genre,"#" + artist,"#" + song,"#" + str(length) + "\n"))
+        #f3.write(genre + "," + artist + " - " + song + "," + str(length) + "\n")
+      artist_last_played=cnt+1
+      sql_stmnt.execute('''update artist_last_played 
+                                  set last_played = ?
+                                where artist = ?
+                                  and cat = ?;''',(artist_last_played,artist,genre))
+      return_val=True
+    else:
+      debug_out(5,["!! ",genre," Artist played too requently - should be skipped. Artist_last_played + genre repeat not < track cnt",str(artist_last_played) +"+"+str(cat_repeat)+" not < " + str(cnt) ])
+      return_val=False
+      
+    conn.commit
+    return return_val
+# END check_artist_repeat function
+
+def open_cat_track_cursors():
+  #This is the cursor of all the tracks for the genre we're trying to find a track for. 
+  #I call this a cursor (cause it really is) but we'll only ever selects one row for each execution.
+  debug_out(4,["open_cat_track_cursors:",genre,cnt])
+
+  cat_cursor.execute('''select song, artist, last_play_dt, last_played, rating, length, repeat_cnt, location 
+                          from tracks 
+                        where cat = ? 
+                          and last_played <= ? 
+                          order by last_play_dt''',(genre,cnt,))
+
+# # # # # # # # 
+# This function gets a row from the cat cursor that matches the cat from the cat file. The row will be least recently played
+# track for that category. If the row meets the artist repeat rules for this cat it will update that record's last_played
+# with 999999 to indicate it shouldn't be selected the next time the cursor is built.
+# If it doesn't meet the repeat rule it will update last_played for all recs for that artist in this genre with
+# artist_last_played plus the repeat interval. This will keep this artist from being included in the cursor until the 
+# loop count gets to the artist repeat interval. If it doesn't meet the repeat rules this function will be called again
+# until we find a row for this category that meets the artist repeat rules
+# # # # # # # # 
+def process_cat_track(cnt):
+  global artist, length, song, location, last_played, cat_tracks_looped
+  debug_out(2,["process_cat_track - " + genre,cnt])
+  open_cat_track_cursors()
+  # If a genre doesn't have enough songs to match nbr_of_<genre>_songs then when we get to the end we need to reset that
+  # genre and start from its beginning.
+  try:
+    song,artist, last_play_dt, last_played, rating, length, repeat_cnt, location=cat_cursor.fetchone()
+  except TypeError:
+    if cat_tracks_looped == "No":
+      debug_out(0,["INFO","Processed all '"+genre+"' tracks. Need to start over.","last_played="+ str(cnt)])
+      cat_tracks_looped = "Yes"
+      sql_stmnt.execute('update tracks set last_played=0 where cat = ?;',(genre,))
+      open_cat_track_cursors()
+      song,artist, last_play_dt, last_played, rating, length, repeat_cnt, location=cat_cursor.fetchone()
+    else:
+      debug_out(0,["ERROR","Not enoough '"+genre+"' tracks to build playlist using repeat value of " + str(cat_repeat) + ". last_played="+ str(cnt)])
+      debug_out(0,["ERROR","Repeat val for  '"+genre+"' can not be more than " + str(cnt - artist_last_played) + ". last_played="+ str(cnt)])
+      
+      exit(20)
+          
+  if check_artist_repeat() == False:
+    debug_out(3,["Failed artist repeat - Need to find another "+ genre + "record"])
+  
+    # We failed the artist repeat so set last_played so this artist won't be included till its time again
+    sql_stmnt.execute('''update tracks set last_played=?
+                        where artist= ?
+                            and cat = ?
+                            and last_played <> 999999;
+                      ''',(artist_last_played+cat_repeat+1,artist,genre))
+    return_val=False
+  else:
+    debug_out(3,["Passed artist repeat"])
+  
+    # We found a valid track that can be added to the play list so update it in the tracks table so the song wont 
+    # be eligible in the future
+    sql_stmnt.execute('''update tracks set last_played=999999
+                          where song = ?
+                            and artist = ?
+                            and cat = ?;
+                      ''',(song,artist,genre))
+    return_val=True
+  
+  debug_out(2,[" End - return_val="+str(return_val)])
+  conn.commit
+  return(return_val) # End process_cat_track function
+
 def main(dbug_lvl=debug_level,
         g_cats=cats,
         pct=c_pct,
@@ -163,7 +314,7 @@ def main(dbug_lvl=debug_level,
         create_rcntadd_cat=create_recentadd_cat, recentadd_dt=recentadd_date, w_pct=weightinc_pct,
         create_plylist=create_playlist,
         ):  
-  global  debug_level, create_playlist,playlist_length, recentadd_date, create_recentadd_cat, c_pct, weightinc_pct
+  global  debug_level, create_playlist,playlist_length, recentadd_date, create_recentadd_cat, c_pct, weightinc_pct, genre, f2, f3,cnt, cat_repeat, cat_tracks_looped
   debug_level=dbug_lvl
   playlist_length=playlist_lgth
   recentadd_date=recentadd_dt
@@ -180,157 +331,6 @@ def main(dbug_lvl=debug_level,
     conn.close()
     df.close() # Debug file
     return(playlist_tot_songs,nbr_of_cat_songs)
-
-
-  # # # # # # # #
-  # This funcition lays out the order of tracks based on the correct cat spacing to insure the right nbr
-  # of tracks for each cat are included. Once we finish writing out this file we'll reopened it for read 
-  # so we can start finding tracks to match the genre
-  # # # # # # # #
-  def  build_proces_db_cat_file():
-    f1 = open("process_db_cat_fin_order.txt", "w")
-    for x in range(0,playlist_tot_songs):
-
-      if create_recentadd_cat == "Yes":
-        for x in range(6):
-          amt=int(tot_eq[x])
-          if amt<=tot_eq[0] and amt<=tot_eq[1] and amt<=tot_eq[2] and amt<=tot_eq[3] and amt<=tot_eq[4] and amt<=tot_eq[5]:
-              tot_eq[x]=tot_eq[x] + eq[x]
-              debug_out(2,["check_a_row recentadd " , cats[x], tot_eq[x] ])
-              break
-      else:
-        for x in range(5):
-          y=x+1
-          amt=int(tot_eq[y])
-          if amt<=tot_eq[1] and amt<=tot_eq[2] and amt<=tot_eq[3] and amt<=tot_eq[4] and amt<=tot_eq[5]:
-              tot_eq[y]=tot_eq[y] + eq[y]
-              debug_out(2,["check_a_row no recentadd" , cats[y], tot_eq[y] ])
-              x = x + 1
-              break
-      #return_val=cats[x]
-      f1.write(cats[x] + '\n')
-    #  f1.write(check_a_row()+'\n')
-    f1.close()
-    return
-
-  
-  # # # # # # #
-  # Determines if the current artist hasn't been played too recently based on 
-  # Genre artist repeat interval
-  # # # # # # # 
-  def check_artist_repeat():
-    global artist, artist_last_played,last_played
-    last_played_cur.execute('''select g.last_played, genre, a.last_played
-                                from artist_last_played  g
-                                    ,(select max(last_played) last_played from artist_last_played 
-                                      where artist=?) a
-                                where artist=?
-                                  and genre=?'''
-                                ,(artist, artist,genre,))
-    row=last_played_cur.fetchone()
-    debug_out(4,["check_artist_repeat:","artist:",artist,"genre:",genre,cnt,"last_played",last_played,row])
-    debug_out(4,["  artist_last_played row(artists last_played|genre|artists genre last_played) =:",row])
-    
-    if row is None:
-      #Really Not sure why the above select would not return a row. The Artist_last_played
-      #is loaded in load_sqlite.py based on all tracks so it should be good to go
-      debug_out(0,"This shouldn't happen so I'm exiting - gonna have to debug this one")
-      exit()
-      insert_stmt='''insert into artist_last_played
-                  (artist, genre, last_played)
-                  values (?,?,?);''',(artist, genre, cnt)
-      sql_stmnt.execute(insert_stmt,(artist,genre,cnt))
-      conn.commit
-    else:
-      artist_cat_last_played = row[0]
-      artist_last_played = row[2]
-      debug_out(4,[artist," Loop cnt=",cnt," artist_cat_last_played=",artist_cat_last_played,"artist_last_played=",artist_last_played, genre,song, row])
-      if artist_last_played == 0 or artist_last_played + genre_repeat < cnt:
-        debug_out(5,["Valid track to write to playlist, row =",row])
-        line1='#EXTINF: ' + str(length) + ',' + artist + " - " + song 
-        f2.write(line1 + "\n")
-        f2.write(location + "\n")
-        if debug_level>0:
-          frmt="{:<10s}{:<42s}{:<32s}{:<12s}"
-          f3.write(frmt.format("#" + genre,"#" + artist,"#" + song,"#" + str(length) + "\n"))
-          #f3.write(genre + "," + artist + " - " + song + "," + str(length) + "\n")
-        artist_last_played=cnt+1
-        sql_stmnt.execute('''update artist_last_played 
-                                    set last_played = ?
-                                  where artist = ?
-                                    and genre = ?;''',(artist_last_played,artist,genre))
-        return_val=True
-      else:
-        debug_out(5,["!! ",genre," Artist played too requently - should be skipped",artist_last_played])
-        return_val=False
-        
-      conn.commit
-      return return_val
-  # END check_artist_repeat function
-
-  def open_cat_track_cursors(genre):
-    #This is the cursor of all the tracks for the genre we're trying to find a track for. 
-    #I call this a cursor (cause it really is) but we'll only ever select one row for each execution.
-    debug_out(4,["open_cat_track_cursors:",genre,cnt])
-
-    cat_cursor.execute('''select song, artist, last_play_dt, last_played, rating, length, repeat_cnt, location 
-                            from tracks 
-                          where genre = ? 
-                            and last_played <= ? 
-                            order by last_play_dt''',(genre,cnt,))
-
-  # # # # # # # # 
-  # This function gets a row from the cat cursor that matches the cat from the cat file. The row will be least recently played
-  # track for that category. If the row meets the artist repeat rules for this cat it will update that record's last_played
-  # with 999999 to indicate it shouldn't be selected the next time the cursor is built.
-  # If it doesn't meet the repeat rule it will update last_played for all recs for that artist in this genre with
-  # artist_last_played plus the repeat interval. This will keep this artist from being included in the cursor until the 
-  # loop count gets to the artist repeat interval. If it doesn't meet the repeat rules this function will be called again
-  # until we find a row for this category that meets the artist repeat rules
-  # # # # # # # # 
-  def process_cat_track(cnt):
-    global artist, length, song, location, genre_repeat, last_played
-    debug_out(2,["process_cat_track"])
-    open_cat_track_cursors(genre)
-    # If a genre doesn't have enough songs to match nbr_of_<genre>_songs then when we get to the end we need to reset that
-    # genre and start from its beginning.
-    try:
-      song,artist, last_play_dt, last_played, rating, length, repeat_cnt, location=cat_cursor.fetchone()
-    except TypeError:
-      debug_out(0,["INFO","Processed all '"+genre+"' tracks. Need to start over.","Cnt=", cnt])
-      sql_stmnt.execute('update tracks set last_played=0 where genre = ?;',(genre,))
-      open_cat_track_cursors(genre)
-      song,artist, last_play_dt, last_played, rating, length, repeat_cnt, location=cat_cursor.fetchone()
-    
-    genre_idx=cats.index(genre)
-    genre_repeat=repeat[genre_idx]
-
-    if check_artist_repeat() == False:
-      debug_out(3,["Failed artist repeat - Need to find another "+ genre + "record"])
-    
-      # We failed the artist repeat so set last_played so this artist won't be included till its time again
-      sql_stmnt.execute('''update tracks set last_played=?
-                          where artist= ?
-                              and genre = ?
-                              and last_played <> 999999;
-                        ''',(artist_last_played+genre_repeat+1,artist,genre))
-      return_val=False
-    else:
-      debug_out(3,["Passed artist repeat"])
-    
-      # We found a valid track that can be added to the play list so update it in the tracks table so the song wont 
-      # be eligible in the future
-      sql_stmnt.execute('''update tracks set last_played=999999
-                            where song = ?
-                              and artist = ?
-                              and genre = ?;
-                        ''',(song,artist,genre))
-      return_val=True
-    
-    debug_out(2,[" End - return_val="+str(return_val)])
-    conn.commit
-    return(return_val) # End process_cat_track function
-
   # MAIN LOOP
   # All the functions have been defined, now gonna start doing some work
   # First we'll write theprocess_db_cat_fin_order.txt file with all the categories laid out in the correct sequence. Eash record
@@ -345,10 +345,10 @@ def main(dbug_lvl=debug_level,
   sql_stmnt.execute('''delete from artist_last_played;''')
 
   sql_stmnt.execute('''insert into artist_last_played
-                            (artist, last_played, genre)
-                            select artist, 0, genre
+                            (artist, last_played, cat)
+                            select artist, 0, cat
                               from tracks
-                          group by artist, genre;''')
+                          group by artist, cat;''')
 
   f2 = open(playlist_name+".m3u", "w")
   f2.write("#EXTM3U" + "\n")
@@ -362,7 +362,11 @@ def main(dbug_lvl=debug_level,
   with open(r"process_db_cat_fin_order.txt", 'r') as f1:
    for cnt, line in enumerate(f1):
     genre=line.strip()
-    debug_out(1,["Main Loop calling process_cat_track",cnt, genre])
+    cat_idx=cats.index(genre)
+    cat_repeat=repeat[cat_idx]
+    cat_tracks_looped="No"
+  
+    debug_out(1,["Main Loop calling process_cat_track ",cnt, genre])
     while process_cat_track(cnt) == False:
       debug_out(1,[" Failed artist repeat - recalling process_cat_track"])
 
@@ -375,7 +379,7 @@ def main(dbug_lvl=debug_level,
   debug_out(0,["# Script execution complete. Final track count=",cnt+1])
   debug_out(0,["# # # # # # # # # # # # # # # # # # # # # "])
 
-  f1.close() # process_db_cat_fin_order.txt
+ # f1.close() # process_db_cat_fin_order.txt (with statement automatically closes files when done - I think)
   f2.close() # m3u file
   f3.close() # m3u debug file
   df.close() # Debug file
@@ -387,7 +391,7 @@ def main(dbug_lvl=debug_level,
 if __name__ == "__main__":
   definable_cats=["Latest","In Rot","Other","Old","Damaged"]
   cats = recentadd_cat + definable_cats
-  main(dbug_lvl=2,
+  main(dbug_lvl=5,
         g_cats=cats,pct=c_pct,
         playlist_nm=playlist_name,playlist_lgth=playlist_length,
         create_rcntadd_cat="Yes", recentadd_dt=recentadd_date, w_pct=str(20),

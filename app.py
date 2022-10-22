@@ -84,6 +84,7 @@ def create_playlist_form():
       
       # Calling process_db.main
       total_songs,nbr_of_genre_songs=process_db.main(0,
+                                                      ["RecentAdd","Latest","In Rot","Other","Old","Damaged"],
                                                       pcts,
                                                       playlist_name,
                                                       playlist_length,

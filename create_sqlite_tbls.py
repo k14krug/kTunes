@@ -15,15 +15,15 @@ CREATE TABLE Artist_last_played (
     artist  TEXT,
     song_cnt integer,
     last_played INTEGER,
-    genre TEXT,
-    UNIQUE(artist,genre)
+    cat TEXT,
+    UNIQUE(artist,cat)
 );
 
 CREATE TABLE Tracks (
     song TEXT,
     artist TEXT, 
     album text,
-    genre text,
+    cat text,
     length INTEGER,
     last_play_dt DATE,
     date_added date,

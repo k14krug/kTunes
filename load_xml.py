@@ -50,7 +50,7 @@ for entry in songs:
     name = lookup(entry, 'Name')
     artist = lookup(entry, 'Artist')
     album = lookup(entry, 'Album')
-    genre = lookup(entry, 'Genre')
+    cat = lookup(entry, 'Genre')
     length = lookup(entry, 'Total Time')
     year = lookup(entry, 'Year')
     count = lookup(entry, 'Play Count')
@@ -64,40 +64,44 @@ for entry in songs:
     location = urllib.parse.unquote(lookup(entry, 'Location')).replace("file://localhost/","")
 
     cur.execute('''INSERT OR REPLACE INTO Tracks
-        (song, artist,  album, genre, length, last_play_dt, date_added, cnt, rating, location ) 
+        (song, artist,  album, cat, length, last_play_dt, date_added, cnt, rating, location ) 
         VALUES ( ?, ?, ?, ?, ?,?, ?, ?, ?, ? )''', 
-        (name, artist, album,  genre, length, last_play_dt, date_added, count, rating, location))
+        (name, artist, album,  cat, length, last_play_dt, date_added, count, rating, location))
 
     song_count += 1
 
 
-cur.execute('''update tracks set genre = 'Latest'
-              where genre like 'latest%' COLLATE NOCASE
+cur.execute('''update tracks set cat = 'Latest'
+              where cat like 'latest%' COLLATE NOCASE
             ''')
-cur.execute('''update tracks set genre = 'In Rot'
-              where genre like 'In rotation%' COLLATE NOCASE
+cur.execute('''update tracks set cat = 'In Rot'
+              where cat like 'In rotation%' COLLATE NOCASE
             ''')
-cur.execute('''update tracks set genre = 'Other'
-              where genre like 'Other than New%' COLLATE NOCASE
+cur.execute('''update tracks set cat = 'Other'
+              where cat like 'Other than New%' COLLATE NOCASE
             ''')
-cur.execute('''update tracks set genre = 'Old'
-              where genre like 'Old%' COLLATE NOCASE
+cur.execute('''update tracks set cat = 'Old'
+              where cat like 'Old%' COLLATE NOCASE
             ''')
-cur.execute('''update tracks set genre = 'Album'
-              where genre like 'Album%' COLLATE NOCASE
+cur.execute('''update tracks set cat = 'Album'
+              where cat like 'Album%' COLLATE NOCASE
+            ''')
+
+cur.execute('''update tracks set cat = 'Damaged'
+              where cat like 'Damaged%' COLLATE NOCASE
             ''')
 
 
 # Load artist_last_played.
 # This table is used during the merge to check the last time an artist has been
-# Played and then checked against the hard code values for artist/genre replay cnt
+# Played and then checked against the hard code values for artist/cat replay cnt
 #conn.commit()
 #exit()
 cur.execute('''insert into artist_last_played
-        (artist, last_played, genre)
- select artist, 0, genre
+        (artist, last_played, cat)
+ select artist, 0, cat
    from tracks
- group by artist, genre''')
+ group by artist, cat''')
 
 
 #Ends transaction and make permanent all changes performed in the transaction
