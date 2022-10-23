@@ -16,8 +16,8 @@ def get_db_connection():
     conn.row_factory = sqlite3.Row
     return conn
 
-@app.route('/', methods=["GET", "POST"])
-def enter_data():
+@app.route('/home', methods=["GET", "POST"])
+def home():
    if request.method == "POST":
       artist = request.form["artist"]
       artist_tracks = get_artist_tracks(artist)
@@ -83,7 +83,7 @@ def create_playlist_form():
          weighting_pct=""
       
       # Calling process_db.main
-      total_songs,nbr_of_genre_songs=process_db.main(1,
+      total_songs,nbr_of_genre_songs=process_db.main(0,
                                                       ["RecentAdd","Latest","In Rot","Other","Old","Damaged"],
                                                       pcts,
                                                       playlist_name,
@@ -119,11 +119,11 @@ def create_playlist_form():
                                                  msg=msg,
                                                  total_songs=" Total Songs - "+ str(total_songs),
                                                  nbr_of_recentadd_songs="  Recent Add - "+ str(nbr_of_recentadd_songs),
-                                                 nbr_of_latest_songs="  Latest - "+ str(nbr_of_latest_songs),
-                                                 nbr_of_in_rot_songs="  In Rot - "+ str(nbr_of_in_rot_songs),
-                                                 nbr_of_other_songs="  Other - "+ str(nbr_of_other_songs),
-                                                 nbr_of_old_songs="  Old - "+ str(nbr_of_old_songs),
-                                                 nbr_of_album_songs="  Album - "+ str(nbr_of_album_songs))  
+                                                 nbr_of_latest_songs="  Cat 1 - "+ str(nbr_of_latest_songs),
+                                                 nbr_of_in_rot_songs="  Cat 2 - "+ str(nbr_of_in_rot_songs),
+                                                 nbr_of_other_songs="  Cat 3 - "+ str(nbr_of_other_songs),
+                                                 nbr_of_old_songs="  Cat 4 - "+ str(nbr_of_old_songs),
+                                                 nbr_of_album_songs="  Cat 5 - "+ str(nbr_of_album_songs))  
    else:
       playlist_length=2500
       latest_pct=35

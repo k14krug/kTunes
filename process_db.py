@@ -27,6 +27,7 @@ df=""
 # definable_cats are the genre values I use in my itunes catalog. Set these to values appropriate for your catalog.
 # Next we set values to associate with them like percentage to include for each cat and artist "repeat".
 # The artist repeat is applied to each cat, for example we only want to here an artist from the 2nd cat no more frequently then every 15 songs.
+# The first index of c_pct and repeat are associated with the dynamic category; recent_add. The remaining indexes are associated with definable_cats.
 debug_level=0
 definable_cats = ["Latest","In Rot","Other","Old","Album"]
 recentadd_cat = ["RecentAdd"] 

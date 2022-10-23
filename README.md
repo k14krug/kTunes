@@ -2,19 +2,19 @@
 
 ## Purpose
 
-Using the iTunes Genre field, create playlists with user defined percentages for each genre. The songs selected for each genre are ordered by least recently played. The final playlist merges all the genres together based on the percentages. The playlist also minimizes the repeating of artists. For example an artist should only be played every 15 songs (see "Variable artist repeat interval" below for more detail). 
+Using the iTunes Genre field, create playlists with user defined percentages for each user specified genre(category). The songs selected for each cat are ordered by least recently played. The final playlist merges all the cats together based on the percentages. The playlist also minimizes the repeating of artists. For example an artist should only be played every 15 songs (see "Variable artist repeat interval" below for more detail). 
 
-An additional dynamic(on-the-fly) category can be created of your recently added songs from the "Latest" genre.  If you check this option you also need to choose a "recent add" date and a weighting of these songs as compared to the remaining "Latest" songs. Choosing this option has no effect on your actual iTunes catelog, only which songs are added to the playlist.
+An additional dynamic(on-the-fly) category can be created of your recently added songs from the first genre(cetegory).  If you check this option you also need to choose a "recent add" date and a weighting of these songs as compared to the remaining tracks in this cat. Choosing this option has no effect on your actual iTunes catelog, only which songs are added to the playlist.
 
 The new playlist can be played with any app that reads *.m3u files but if you want to continue to make playlist based on least recently played date the playlist must be played through iTunes.
 
 ## Requirements
 - You use the "Genre" field in iTunes to classify music by catagories
 - You have enabled iTunes to share the catalog with 3rd parties. Doing so creates an xml file of your iTunes catalog that this project reads in.
-- You have apple script ImportM3U.vbs copied to your iTunes directory. This allows duplicates of songs to appear in a playlist. The basic iTunes interface will remove dups when you import a playlist.
+- You have apple script ImportM3U.vbs copied to your iTunes directory. This allows duplicates of songs to appear in a playlist. The basic iTunes interface will remove dups when you import a playlist. You may want dups in your playlist if for example you have a new music category and you want it to take up a large percantage of the playlist but you don't have enough new music tracks to meet the percentage you desire.
 
-## Default Genres(Categories)
-These are the categories I'm using in the genre field in my library. Since these are currently hard coded in the code I'll describe how I'm using them.
+## Default Categories
+Below are the default categories. I'm using these genres values in my iTunes library. You should be able to change these fairly easily by modifying load_xml.py and new_playlist.html. Here's the description of the cats I'm using.
 - Latest - Songs I'm currently really enjoying or newly discovering. My playlist will have a significant amount of these songs - maybe 30-50%. Using the "recent add" switch can give an even higher priority to the newest songs in this genre.
 - In Rotation - Songs that are still pretty new and want to be in pretty regular rotation but just not as much as they used to.
 - Other - Songs I still like but have been around for a while.
@@ -27,9 +27,10 @@ These are the categories I'm using in the genre field in my library. Since these
   - Name of playlist
   - Total desired length in minutes for new playlist
   - % to include for each genre(category)
+  - A checkbox to choose if you want to give priority to your most recently added tracks in the first category(i.e., Latest)
 
 - After you submit the flask form it will display how many total songs the new playlist contains and the # of songs from each genre(category)
-- The process_db.py script will first build a placeholder playlist. It contains an entry for each song but only indicates what genre it will be. This is just trying to create a smooth mixtrue of the 5 genres. Next it will parse out songs from the loaded sqlite table to final playlist file.
+- The process_db.py script will first build a placeholder playlist. It contains an entry for each song but only indicates what genre it will be. This is just trying to create a smooth mixtrue of the 5 genres. Next it will parse out songs from the loaded sqlite table to the final playlist file.
 - Running a post script copies the new playlist to your iTunes direcory
 - In Explorer you must drop the playlist on top of the ImportM3U.vbs apple script
 
@@ -44,7 +45,8 @@ Here's a couple extensions to VS code that were helpful:
 ## Still needed
 - variable to specify iTunes directory
 - An Auto execution mode. A single step that runs the entire process including updating your iTunes playlist with a new track list.
-- A config file of parms. Currently the initial values of parms are hard coded in the script. The genres(categories) should also be user defined in this file. Currently its using the 5 categories I use. 
+- A config file of parms. Currently the initial values of parms are hard coded in the script. The genres(categories) should also be user defined in this file. Currently its using the 5 categories I use.
+- Modify new_playlist.html to allow input of any categories a user has instead of the hardcode cats I'm using 
 - Variable artist repeat interval - Currently hard coded for each of the 5 genres (15,15,30,45,45). I want to paramertierize these. Here's more detail on how the repeat intermal works. Artist repeat takes into consideration the artist and the repeat interval for each of the 5 genre(categories). If an artist has a song in the first genre and another in the 5th genre and a song for that artist coming from the first genre (which has a repeat of 15) is added to the playlist and then another song for that artist is found but it's from 5th genre, it won't be added to the playlist till there's at least 44 other songs added.
 
 ##  Files
