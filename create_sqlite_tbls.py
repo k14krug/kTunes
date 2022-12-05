@@ -6,10 +6,9 @@ cur = conn.cursor()
 
 # Makes new tables in db
 cur.executescript('''
-DROP TABLE IF EXISTS Artist;
-DROP TABLE IF EXISTS Album;
-DROP TABLE IF EXISTS Genre;
 DROP TABLE IF EXISTS Artist_last_played;
+DROP TABLE IF EXISTS Tracks;
+DROP TABLE IF EXISTS Playlist;
 
 CREATE TABLE Artist_last_played (
     artist  TEXT,
@@ -34,5 +33,30 @@ CREATE TABLE Tracks (
     last_played INTEGER DEFAULT 0 
 );
 
+CREATE TABLE Playlist (
+    playlist_dt DATE,
+    playlist_nm TEXT, 
+    length INTEGER,
+    nbr_of_songs INTEGER,
+    recentadd_dt DATE,
+    debug_level TEXT,
+    genre TEXT,
+    pct INTEGER,
+    nbr_of_genre_songs INTEGER,
+    nbr_of_genre_playlist_songs INTEGER
+);
+
+CREATE TABLE Playlist_tracks (
+    playlist_dt DATE,
+    playlist_nm TEXT,
+    track_cnt INTEGER,
+    artist TEXT, 
+    song TEXT,
+    genre TEXT,
+    length INTEGER,
+    last_play_dt DATE,
+    last_played INTEGER,
+    repeat_cnt INTEGER
+);
 ''')
 conn.commit()

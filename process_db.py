@@ -20,7 +20,8 @@ spc[5] = "    "
 cnt=0
 genre=""
 create_recentadd_cat="No"
-date_added=datetime.now() - timedelta(days=180)
+today_dt=datetime.now()
+date_added=today_dt - timedelta(days=180)
 playlist_name="playlist"
 create_playlist="Yes"
 
@@ -29,7 +30,7 @@ create_playlist="Yes"
 # The artist repeat is applied to each genre. For example we only want to here an artist
 # from the Other genre no more frequently then every 30 songs (its the 3rd index in the list of genres).
 genres=["RecentAdd","Latest","In Rot","Other","Old","Album"]
-repeat = [15,15,15,30,45,45]
+repeat = [15,15,30,50,45,45]
 track_cnt=[0,0,0,0,0,0]
 
 # Percentage of total tracks that a genre makes up. 
@@ -164,7 +165,14 @@ def main(dbug_lvl=debug_level,
     conn.close()
     df.close() # Debug file
     return(playlist_tot_songs,nbr_of_genre_songs)
-
+  else:
+    for x in range(len(genres)):
+      insert_stmt='''insert into playlist
+                     (playlist_dt,playlist_nm,length,nbr_of_songs,recentadd_dt,debug_level,genre,pct,nbr_of_genre_playlist_songs,nbr_of_genre_songs)
+                     values (?,?,?,?,?,?,?,?,?,?);'''
+      sql_stmnt.execute(insert_stmt,(today_dt,playlist_name,playlist_lgth, playlist_tot_songs, recentadd_dt, debug_level, genres[x], float(g_pct[x]),nbr_of_genre_songs[x],track_cnt[x]))
+    conn.commit
+  
   
   # # # # # # # #
   # The check_a_row funcition lays out the order of tracks based on the correct genre spacing to insure the right nbr
@@ -261,7 +269,12 @@ def main(dbug_lvl=debug_level,
         f2.write(location + "\n")
         if debug_level>0:
           frmt="{:<10s}{:<42s}{:<32s}{:<12s}"
-          f3.write(frmt.format("#" + genre,"#" + artist,"#" + song,"#" + str(length) + "\n"))
+          f3.write(frmt.format("#" + genre,"#" + artist,"#" + song,"#" + str(length/1000/60) + "\n"))
+          insert_stmt='''insert into playlist_tracks
+                       (playlist_dt,playlist_nm,track_cnt,artist,song,genre,length,last_play_dt,last_played,repeat_cnt)
+                       values (?,?,?,?,?,?,?,?,?,?);''' 
+          sql_stmnt.execute(insert_stmt,(today_dt,playlist_name,cnt,artist,song,genre,length/1000/60,last_play_dt,last_played,repeat_cnt))
+    
           #f3.write(genre + "," + artist + " - " + song + "," + str(length) + "\n")
         artist_last_played=cnt+1
         sql_stmnt.execute('''update artist_last_played 
@@ -297,7 +310,7 @@ def main(dbug_lvl=debug_level,
   # loop count gets to the artist repeat interval. 
   # # # # # # # # 
   def process_genre_track(cnt):
-    global artist, length, song, location, genre_repeat, last_played
+    global artist, length, song, location, genre_repeat, last_played, repeat_cnt, last_play_dt
     return_val=False
     debug_out(2,["process_genre_track"])
     open_genre_track_cursors(genre)
@@ -352,6 +365,9 @@ def main(dbug_lvl=debug_level,
 
   # Since this is the "real" beginning of the script, need to initialize repeat_cnt and last_played.
   sql_stmnt.execute('update tracks set repeat_cnt = 1, last_played=0;')
+
+  # Need to set last_play_dt to 0 if it a brand new track
+  sql_stmnt.execute('update tracks set last_play_dt = 0 where last_play_dt = "Unknown";')
 
   with open(r"process_db_genre_fin_order.txt", 'r') as f1:
    for cnt, line in enumerate(f1):
