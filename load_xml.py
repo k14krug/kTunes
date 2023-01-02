@@ -26,14 +26,14 @@ conn = sqlite3.connect(DB)
 cur = conn.cursor()
 
 # Function that finds the value in key and returns its text
-# If value in key is blank, returns 'Unkown' as value
+# If value in key is blank, returns 'Unknown' as value
 def lookup(i, key):
     found = False
     for child in i:
         if found : return child.text
         if child.tag == 'key' and child.text == key:
             found = True
-    return 'Unkown'
+    return 'Unknown'
 
 cur.execute('''delete from Tracks;''')
 cur.execute('''delete from Artist_last_played;''')

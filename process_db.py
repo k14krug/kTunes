@@ -338,7 +338,7 @@ def main(dbug_lvl=debug_level,
                         ''',(artist_last_played+genre_repeat+1,artist,genre))
       return_val=True
     else:
-      debug_out(3,["Passed artist repeat"])
+      debug_out(3,["Passed artist repeat",artist_last_played,genre_repeat,artist,genre])
     
       # We found a valid track that can be added to the play list so update it in the tracks table so the song wont 
       # be eligible in the future

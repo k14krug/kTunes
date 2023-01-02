@@ -83,7 +83,7 @@ def create_playlist_form():
          weighting_pct=""
       
       # Calling process_db.main
-      total_songs,nbr_of_genre_songs=process_db.main(0,
+      total_songs,nbr_of_genre_songs=process_db.main(4,
                                                       pcts,
                                                       playlist_name,
                                                       playlist_length,
