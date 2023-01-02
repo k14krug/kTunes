@@ -21,8 +21,11 @@
          <br>
          <label for="recentadd_dt">Recent Add Date</label><input type="date" name="recentadd_dt" value="{{ recentadd_dt }}"> </input>
          <br>
-         <label for="create_playlist">Create playlist:</label><input type="checkbox" name="create_playlist" value="{{ create_playlist }}"> </input>
+         <label for="create_playlist">Create playlist:</label><input type="checkbox" name="create_playlist"> </input>
          <button type="submit">Submit</button>
+         <br>
+         <label for="debug_lvl">Debug Level(1-5):</label><input type="text" name="debug_lvl" value="{{ debug_lvl }}"> </input>
+         
       </form>
       <br>
       {{ msg }}

@@ -81,9 +81,10 @@ def create_playlist_form():
       else:
          recentadd_dt=""
          weighting_pct=""
-      
+      debug_lvl=request.form["debug_lvl"]
+
       # Calling process_db.main
-      total_songs,nbr_of_genre_songs=process_db.main(4,
+      total_songs,nbr_of_genre_songs=process_db.main(int(debug_lvl),
                                                       pcts,
                                                       playlist_name,
                                                       playlist_length,
@@ -103,7 +104,10 @@ def create_playlist_form():
       album_pct=request.form["album_pct"]
       recentadd_dt=request.form["recentadd_dt"]
       weighting_pct=request.form["weighting_pct"]
-      msg="Playlist "+request.form["playlist_name"]+" (re)created with the following song counts"
+      if create_playlist == "Yes":
+         msg="Playlist "+request.form["playlist_name"]+" (re)created with the following song counts"
+      else:
+         msg="Proposed song count details"
       return render_template("new_playlist.html",playlist_name=playlist_name, 
                                                  playlist_length=playlist_length,
                                                  latest_pct=latest_pct,
@@ -140,7 +144,8 @@ def create_playlist_form():
       except NameError:
         six_months_ago = datetime.now() - timedelta(days=180)
         recentadd_dt=six_months_ago.strftime("%Y-%m-%d")
-      print("recentad_dt=",recentadd_dt)
+      print("app.py - recentad_dt=",recentadd_dt)
+      debug_lvl=0
       return render_template("new_playlist.html",playlist_name=playlist_name, 
                                                  playlist_length=playlist_length,
                                                  latest_pct=latest_pct,
@@ -151,6 +156,7 @@ def create_playlist_form():
                                                  create_recentadd_cat=create_recentadd_cat,
                                                  recentadd_dt=recentadd_dt,
                                                  weighting_pct=weighting_pct,
+                                                 debug_lvl=debug_lvl,
                                                  msg="Enter data and hit Submit to create new playlist")
 
 @app.route('/result',methods = ['POST', 'GET'])
