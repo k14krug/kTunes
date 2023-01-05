@@ -107,7 +107,11 @@ def create_playlist_form():
       if create_playlist == "Yes":
          msg="Playlist "+request.form["playlist_name"]+" (re)created with the following song counts"
       else:
-         msg="Proposed song count details"
+         msg='Proposed song count details'
+      if nbr_of_recentadd_songs == 0:
+         recentadd_lit="Recent Add - "+ str(nbr_of_recentadd_songs) + ' ("Recently Added" dyn cat not selected)'
+      else:
+         recentadd_lit="Recent Add - "+ str(nbr_of_recentadd_songs)
       return render_template("new_playlist.html",playlist_name=playlist_name, 
                                                  playlist_length=playlist_length,
                                                  latest_pct=latest_pct,
@@ -121,7 +125,7 @@ def create_playlist_form():
                                                  create_playlist="Yes",
                                                  msg=msg,
                                                  total_songs=" Total Songs - "+ str(total_songs),
-                                                 nbr_of_recentadd_songs="  Recent Add - "+ str(nbr_of_recentadd_songs),
+                                                 nbr_of_recentadd_songs=recentadd_lit,
                                                  nbr_of_latest_songs="  Latest - "+ str(nbr_of_latest_songs),
                                                  nbr_of_in_rot_songs="  In Rot - "+ str(nbr_of_in_rot_songs),
                                                  nbr_of_other_songs="  Other - "+ str(nbr_of_other_songs),
@@ -157,7 +161,7 @@ def create_playlist_form():
                                                  recentadd_dt=recentadd_dt,
                                                  weighting_pct=weighting_pct,
                                                  debug_lvl=debug_lvl,
-                                                 msg="Enter data and hit Submit to create new playlist")
+                                                 msg="Enter data & hit Submit to create new playlist")
 
 @app.route('/result',methods = ['POST', 'GET'])
 def result():
