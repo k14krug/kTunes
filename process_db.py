@@ -30,7 +30,7 @@ create_playlist="Yes"
 # The artist repeat is applied to each genre. For example we only want to here an artist
 # from the Other genre no more frequently then every 30 songs (its the 3rd index in the list of genres).
 genres=["RecentAdd","Latest","In Rot","Other","Old","Album"]
-repeat = [15,15,30,50,45,45]
+repeat = [20,20,30,50,50,50]
 track_cnt=[0,0,0,0,0,0]
 
 # Percentage of total tracks that a genre makes up. 

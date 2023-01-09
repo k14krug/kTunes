@@ -21,17 +21,20 @@ CREATE TABLE Artist_last_played (
 CREATE TABLE Tracks (
     song TEXT,
     artist TEXT, 
+    location TEXT,
     album text,
     genre text,
     length INTEGER,
     last_play_dt DATE,
     date_added date,
     rating INTEGER,
-    location TEXT,
     cnt INTEGER,
     repeat_cnt INTEGER,
     last_played INTEGER DEFAULT 0 
 );
+
+CREATE UNIQUE INDEX idx_song_artist 
+ON tracks (song, artist,location);
 
 CREATE TABLE Playlist (
     playlist_dt DATE,
