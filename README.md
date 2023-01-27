@@ -15,7 +15,7 @@ The new playlist can be played with any app that reads *.m3u files but if you wa
 - You have apple script ImportM3U.vbs copied to your iTunes directory. This allows duplicates of songs to appear in a playlist. The basic iTunes interface will remove dups when you import a playlist.
 
 ## Default Genres(Categories)
-These are the categories I'm using in the genre field in my library. Since these are currently hard coded in the code I'll describe how I'm using them.
+These are the categories I'm using in the genre field in my iTunes library. Since the python code has these hard coded I'll describe how I'm using them.
 - Latest - Songs I'm currently really enjoying or newly discovering. My playlist will have a significant amount of these songs - maybe 30-50%. Using the "recent add" switch can give an even higher priority to the newest songs in this category.
 - In Rotation - Songs that are still pretty new and want to be in pretty regular rotation but just not as much as they used to.
 - Other - Songs I still like but have been around for a while.
