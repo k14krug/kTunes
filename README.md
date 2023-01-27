@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Create a playslist of all your songs spaced out based on user defined categories. kTunes uses the iTunes Genre to define categories.
+Create a playslist of all your songs spaced out based on user defined categories. kTunes uses iTunes Genre to define categories.
 It expects 5 categories and you choose a percentage of each to include in your playlist. The songs selected for each category are ordered by least recently played. The final playlist merges all the genres together based on the percentages. The playlist also minimizes the repeating of artists. For example an artist should only be played every 30 songs. Each cagegory can have a different repeat interval (see "Variable artist repeat interval" below for more detail). 
 
 An additional dynamic(on-the-fly) category can be created of your recently added songs from the "Latest" category.  If this option is selected on the web form you'll also need to choose a "recent add" date and a weighting of these songs as compared to the remaining "Latest" songs. This option allows your most recent songs to be heard just a little more frequently than others in the "Latest" category.
