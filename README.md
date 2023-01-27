@@ -60,5 +60,5 @@ Here's a couple extensions to VS code that were helpful:
 - requirements.txt - use **pip install -r requirements.txt** to install all packages required for this project.
 
 ## Flask app sample screen print
-![kTunes screen](https://user-images.githubusercontent.com/107451552/192881760-4221c58a-b2de-4b18-a0b1-755aeb20f217.png)
+![kTunes v0 2](https://user-images.githubusercontent.com/107451552/214996103-66aac49f-fd82-4805-b94d-59b4182f977d.png)
 
