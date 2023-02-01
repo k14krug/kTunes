@@ -11,7 +11,7 @@ else
 fi
 unix2dos $playlist
 echo "copying $1.m3u to /mnt/c/users/nwkru/music/itunes/"
-cp -p  $playlist /mnt/c/users/nwkru/music/itunes/kTunes.m3u
+cp -p  $playlist /mnt/c/users/nwkru/music/itunes/
 #/mnt/c/users/nwkru/music/itunes/ImportM3U.vbs
 echo "# # # # # # # # # # # # # # # # # # # #"
 echo "# "
