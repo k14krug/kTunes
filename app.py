@@ -2,8 +2,11 @@ import sqlite3
 #from tkinter.tix import ROW
 from flask import Flask,redirect, url_for, request, render_template
 from werkzeug.exceptions import abort
-import load_xml
+import tkinter as tk
+from tkinter import ttk
+from tkinter.messagebox import askyesno
 from datetime import datetime,timedelta
+import load_xml
 import process_db
 
 # Create your Flask app instance with the name "app". Pass it the special var __name__ that holds the name of the current Python module.
@@ -16,7 +19,7 @@ def get_db_connection():
     conn.row_factory = sqlite3.Row
     return conn
 
-@app.route('/', methods=["GET", "POST"])
+@app.route('/', methods=["GET", "POST"]   )
 def enter_data():
    if request.method == "POST":
       artist = request.form["artist"]
@@ -75,7 +78,7 @@ def create_playlist_form():
          create_playlist="No"
       create_recentadd_cat="No"
       if request.form.get("x"):
-         create_recentadd_cat="Yes"
+         create_recentadd_cat=True
          recentadd_dt=request.form["recentadd_dt"]
          weighting_pct=request.form["weighting_pct"]
       else:
@@ -84,12 +87,13 @@ def create_playlist_form():
       debug_lvl=request.form["debug_lvl"]
 
       # Calling process_db.main
-      total_songs,nbr_of_genre_songs=process_db.main(int(debug_lvl),
+      total_songs,nbr_of_genre_songs,dup_playlist=process_db.main(int(debug_lvl),
                                                       pcts,
                                                       playlist_name,
                                                       playlist_length,
                                                       create_recentadd_cat, recentadd_dt, weighting_pct,
                                                       create_playlist)
+      
       nbr_of_recentadd_songs=nbr_of_genre_songs[0]
       nbr_of_latest_songs=nbr_of_genre_songs[1]
       nbr_of_in_rot_songs=nbr_of_genre_songs[2]
@@ -105,7 +109,10 @@ def create_playlist_form():
       recentadd_dt=request.form["recentadd_dt"]
       weighting_pct=request.form["weighting_pct"]
       if create_playlist == "Yes":
-         msg="Playlist "+request.form["playlist_name"]+" (re)created with the following song counts"
+         if dup_playlist:
+            msg="Playlist "+request.form["playlist_name"]+" already exist. Please provide a new name"
+         else:
+            msg="Playlist "+request.form["playlist_name"]+" (re)created with the following song counts"
       else:
          msg='Proposed song count details'
       if nbr_of_recentadd_songs == 0:
@@ -123,6 +130,7 @@ def create_playlist_form():
                                                  recentadd_dt=recentadd_dt,
                                                  weighting_pct=weighting_pct,
                                                  create_playlist="Yes",
+                                                 debug_lvl=debug_lvl,
                                                  msg=msg,
                                                  total_songs=" Total Songs - "+ str(total_songs),
                                                  nbr_of_recentadd_songs=recentadd_lit,
@@ -141,14 +149,14 @@ def create_playlist_form():
       weighting_pct=20
       create_recentadd_cat="No"
       curr_dt = datetime.now() 
-      curr_dt = curr_dt.strftime("%m%d%y")
-      playlist_name="p" + "_" + curr_dt + "_" + str(latest_pct) + "." + str(in_rot_pct) + "." + str(other_pct) + "." + str(old_pct) + "." + str(album_pct)
+      curr_dt = curr_dt.strftime("%m_%d_%y")
+      playlist_name="kTunes_" + curr_dt 
       try:
         recentadd_dt
       except NameError:
         six_months_ago = datetime.now() - timedelta(days=180)
         recentadd_dt=six_months_ago.strftime("%Y-%m-%d")
-      print("app.py - recentad_dt=",recentadd_dt)
+      #print("app.py - recentad_dt=",recentadd_dt)
       debug_lvl=0
       return render_template("new_playlist.html",playlist_name=playlist_name, 
                                                  playlist_length=playlist_length,
