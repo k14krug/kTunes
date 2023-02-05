@@ -40,7 +40,7 @@ def get_artist_tracks(artist):
     #print('In get_artist',artist)
     conn = get_db_connection()
     a = "%" + artist + "%"
-    artist_tracks = conn.execute('SELECT artist, song, genre, last_play_dt, rating, cnt, repeat_cnt FROM tracks WHERE artist like ?',
+    artist_tracks = conn.execute('SELECT artist, song, genre, last_play_dt, rating, play_cnt, category FROM tracks WHERE artist like ?',
                         (a,)).fetchall()
     conn.close()
     if artist_tracks is None:
@@ -57,6 +57,24 @@ def disp_artist(artist):
       artist_tracks = get_artist_tracks(artist)
    return render_template('artists.html', t_tracks=artist_tracks, artist=artist)
 
+@app.route("/repeat", methods=["GET", "POST"])
+def new_playlist():
+    if request.method == "POST":
+        repeat = []
+        repeat_input = request.form.get("repeat")
+        repeat_list = repeat_input.split(",")
+        for item in repeat_list:
+            repeat.append(int(item))
+
+        playlist = {
+            "songs": [],
+            "repeat": repeat
+        }
+
+        playlists.append(playlist)
+        return redirect(url_for("index"))
+    return render_template("new_playlist.html")
+
 # From main screen if you choose create playlist, the form will post which allows process_db.py to be executed.
 @app.route('/newplaylist',methods = ['POST', 'GET'])
 def create_playlist_form():
@@ -70,6 +88,15 @@ def create_playlist_form():
               float(request.form["old_pct"]),
               float(request.form["album_pct"])
              ]
+      rpts = [
+              float(0),
+              float(request.form["latest_rpt"]),
+              float(request.form["in_rot_rpt"]),
+              float(request.form["other_rpt"]),
+              float(request.form["old_rpt"]),
+              float(request.form["album_rpt"])
+             ]
+         
       playlist_name=request.form["playlist_name"]
       playlist_length=request.form["playlist_length"]
       if request.form.get('create_playlist'):
@@ -89,6 +116,7 @@ def create_playlist_form():
       # Calling process_db.main
       total_songs,nbr_of_genre_songs,dup_playlist=process_db.main(int(debug_lvl),
                                                       pcts,
+                                                      rpts,
                                                       playlist_name,
                                                       playlist_length,
                                                       create_recentadd_cat, recentadd_dt, weighting_pct,
@@ -106,6 +134,11 @@ def create_playlist_form():
       other_pct=request.form["other_pct"]
       old_pct=request.form["old_pct"]
       album_pct=request.form["album_pct"]
+      latest_rpt=request.form["latest_rpt"]
+      in_rot_rpt=request.form["in_rot_rpt"]
+      other_rpt=request.form["other_rpt"]
+      old_rpt=request.form["old_rpt"]
+      album_rpt=request.form["album_rpt"]
       recentadd_dt=request.form["recentadd_dt"]
       weighting_pct=request.form["weighting_pct"]
       if create_playlist == "Yes":
@@ -126,6 +159,11 @@ def create_playlist_form():
                                                  other_pct=other_pct,
                                                  old_pct=old_pct,
                                                  album_pct=album_pct,
+                                                 latest_rpt=latest_rpt,
+                                                 in_rot_rpt=in_rot_rpt,
+                                                 other_rpt=other_rpt,
+                                                 old_rpt=old_rpt,
+                                                 album_rpt=album_rpt,
                                                  create_recentadd_cat=create_recentadd_cat,
                                                  recentadd_dt=recentadd_dt,
                                                  weighting_pct=weighting_pct,
@@ -141,12 +179,21 @@ def create_playlist_form():
                                                  nbr_of_album_songs="  Album - "+ str(nbr_of_album_songs))  
    else:
       playlist_length=2500
+      
       latest_pct=35
       in_rot_pct=25
       other_pct=15
       old_pct=15
       album_pct=10
+      
+      latest_rpt=20
+      in_rot_rpt=30
+      other_rpt=50
+      old_rpt=50
+      album_rpt=50
+      
       weighting_pct=20
+      
       create_recentadd_cat="No"
       curr_dt = datetime.now() 
       curr_dt = curr_dt.strftime("%m_%d_%y")
@@ -165,42 +212,16 @@ def create_playlist_form():
                                                  other_pct=other_pct,
                                                  old_pct=old_pct,
                                                  album_pct=album_pct,
+                                                 latest_rpt=latest_rpt,
+                                                 in_rot_rpt=in_rot_rpt,
+                                                 other_rpt=other_rpt,
+                                                 old_rpt=old_rpt,
+                                                 album_rpt=album_rpt,
                                                  create_recentadd_cat=create_recentadd_cat,
                                                  recentadd_dt=recentadd_dt,
                                                  weighting_pct=weighting_pct,
                                                  debug_lvl=debug_lvl,
                                                  msg="Enter data & hit Submit to create new playlist")
-
-@app.route('/result',methods = ['POST', 'GET'])
-def result():
-   if request.method == 'POST':
-      result = request.form
-      return render_template("result.html",result = result)
-
-@app.route('/blog/<int:postID>')
-def show_blog(postID):
-   print('Blog id=',postID)
-   return 'Blog Number %d' % postID
-
-@app.route('/user/<playlist_tot_songs>')
-def hello_user(playlist_tot_songs):
-   if playlist_tot_songs =='admin':
-      return redirect(url_for('hello_admin'))
-   else:
-      return redirect(url_for('hello_guest',guest = playlist_tot_songs))
-
-@app.route('/success/<playlist_tot_songs>')
-def success(playlist_tot_songs):
-   return 'Number of minutes in playslist is %s' % playlist_tot_songs
-
-@app.route('/login',methods = ['POST', 'GET'])
-def login():
-   if request.method == 'POST':
-      tot_nbr = request.form['nbr']  # nbr is variable playlist_tot_songs on html form
-      return redirect(url_for('success',playlist_tot_songs = tot_nbr))
-   else:
-      tot_nbr = request.args.get('nbr') # nbr is variable playlist_tot_songs on html form
-      return redirect(url_for('success',playlist_tot_songs = tot_nbr))
 
 if __name__ == '__main__':
     app.run(debug=True)

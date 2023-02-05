@@ -33,11 +33,12 @@ create_playlist="Yes"
 # defining values to associate with them.
 categories=["RecentAdd","Latest","In Rot","Other","Old","Album"]
 repeat = [15,20,30,50,50,50]
-tot_g_trk_cnt=[0,0,0,0,0,0]
-g_trk_cnter=[0,0,0,0,0,0]
+tot_c_trk_cnt=[0,0,0,0,0,0]
+c_trk_cnter=[0,0,0,0,0,0]
 
 # Set some default values
 cat_pct=[str(0),str(50),str(20),str(10),str(10),str(10)]
+cat_rpt=[str(15),str(20),str(30),str(50),str(50),str(50)]
 playlist_length=1000
 debug_level=0
 write_debug_to_file = True
@@ -71,7 +72,8 @@ def debug_out(debug_val,debug_line,frmt="z"):
         df.write(strg + "\n")
         
 def main(dbug_lvl=debug_level,
-        g_pct=cat_pct,
+        c_pct=cat_pct,
+        c_rpt=cat_rpt,
         playlist_nm=playlist_name,
         playlist_lgth=playlist_length,
         create_rcntadd_cat=create_recentadd_cat, recentadd_dt=date_added, weighting_pct=weighting_pct,
@@ -104,28 +106,28 @@ def main(dbug_lvl=debug_level,
     sql_stmnt.execute('''select count(*) from tracks
                            where category=?''',(categories[x],))
     row=sql_stmnt.fetchone()
-    tot_g_trk_cnt[x]=row[0]
+    tot_c_trk_cnt[x]=row[0]
   if create_rcntadd_cat is True:
-    print("g_pct[] before",g_pct)
+    print("c_pct[] before",c_pct)
     # Above we changed some of the latest tracks to recent add tracks. Now were going to determine
     # what percentage of each of those categories to use. We'll first come up with their percentages as
     # part of the original latest pct. For example, if the original latest pct was 50 and we now
     # have 10 recentadd tracks and 20 latest tracks then the recentadd percentages would be 50 * 10 / (10 +20)
     # Then well add a 20% preference to the recentadd % so these will play more freaquently 
     #          recent add preferecne * (orig latest pct * recentadd track cnt / (recentadd track cnt = latest_track cnt))
-    #orig_recentadd_pct = float(g_pct[1]) * tot_g_trk_cnt[0] / (tot_g_trk_cnt[0] + tot_g_trk_cnt[1])
+    #orig_recentadd_pct = float(c_pct[1]) * tot_c_trk_cnt[0] / (tot_c_trk_cnt[0] + tot_c_trk_cnt[1])
     weighting_pct=float("1." + weighting_pct)
-    g_pct[0] = round(weighting_pct * float(g_pct[1]) * tot_g_trk_cnt[0] / (tot_g_trk_cnt[0] + tot_g_trk_cnt[1]))
-    g_pct[1] = round(float(g_pct[1]) - float(g_pct[0]))
+    c_pct[0] = round(weighting_pct * float(c_pct[1]) * tot_c_trk_cnt[0] / (tot_c_trk_cnt[0] + tot_c_trk_cnt[1]))
+    c_pct[1] = round(float(c_pct[1]) - float(c_pct[0]))
   else:
-    g_pct[0] = 0
+    c_pct[0] = 0
 
-  nbr_of_cat_songs= [round(playlist_tot_songs*float(g_pct[0])/100),
-                     round(playlist_tot_songs*float(g_pct[1])/100),
-                     round(playlist_tot_songs*float(g_pct[2])/100),
-                     round(playlist_tot_songs*float(g_pct[3])/100),
-                     round(playlist_tot_songs*float(g_pct[4])/100),
-                     round(playlist_tot_songs*float(g_pct[5])/100)]
+  nbr_of_cat_songs= [round(playlist_tot_songs*float(c_pct[0])/100),
+                     round(playlist_tot_songs*float(c_pct[1])/100),
+                     round(playlist_tot_songs*float(c_pct[2])/100),
+                     round(playlist_tot_songs*float(c_pct[3])/100),
+                     round(playlist_tot_songs*float(c_pct[4])/100),
+                     round(playlist_tot_songs*float(c_pct[5])/100)]
   
   # The cat_inv_pct is the percentage of the inverse of the number of songs a cat should have in a playlist.
   # For example: We only want are playlist to containe 20 of the first cat. So cat_inv_pct = 100 * 1/20
@@ -150,7 +152,7 @@ def main(dbug_lvl=debug_level,
   debug_out(0,["INFO", "Genre","Pct",'PlylstSongs',"Tot Songs"])
   debug_out(0,["INFO", "----------","----",'-----------',"---------"])
   for x in range(len(categories)):
-    debug_out(0,["INFO",categories[x],float(g_pct[x]),nbr_of_cat_songs[x],tot_g_trk_cnt[x]])
+    debug_out(0,["INFO",categories[x],float(c_pct[x]),nbr_of_cat_songs[x],tot_c_trk_cnt[x]])
 
   if create_playlist == 'No':
     conn.commit()
@@ -173,20 +175,20 @@ def main(dbug_lvl=debug_level,
         root.destroy()
         return(playlist_tot_songs,nbr_of_cat_songs,True)
 
-    tot_g_trk_cnt[x]=row[0]
+    tot_c_trk_cnt[x]=row[0]
     
     for x in range(len(categories)):
       insert_stmt='''insert or replace into playlist
                      (playlist_dt,playlist_nm,length,nbr_of_songs,recentadd_dt,debug_level,category,pct,nbr_of_cat_playlist_songs,nbr_of_cat_songs)
                      values (?,?,?,?,?,?,?,?,?,?);'''
-      sql_stmnt.execute(insert_stmt,(today_dt,playlist_name,playlist_lgth, playlist_tot_songs, recentadd_dt, debug_level, categories[x], float(g_pct[x]),nbr_of_cat_songs[x],tot_g_trk_cnt[x],))
+      sql_stmnt.execute(insert_stmt,(today_dt,playlist_name,playlist_lgth, playlist_tot_songs, recentadd_dt, debug_level, categories[x], float(c_pct[x]),nbr_of_cat_songs[x],tot_c_trk_cnt[x],))
   
   def get_cursor_rec(cat):
     global artist, length, play_cnt, song, date_song_added, location, played_sw, cat_cnt, artist_cat_cnt, last_play_dt, csr_row_cnt
 
     # This is the cursor of all the tracks for the cat we're trying to find a track for. 
     # We're only going to pull the first row each time we open this cursor but oh well.
-    debug_out(4,["opening cat_track cursor. Cat:{}, cnt:{}, cat_trk_cnt:{}",cat, cnt,g_trk_cnter[cat_idx]],"f")
+    debug_out(4,["opening cat_track cursor. Cat:{}, cnt:{}, cat_trk_cnt:{}",cat, cnt,c_trk_cnter[cat_idx]],"f")
     where_stmnt = '''
         where (   category = '{}'
                or (   '{}' = 'RecentAdd'
@@ -211,9 +213,9 @@ def main(dbug_lvl=debug_level,
       song,artist, last_play_dt, played_sw, cat_cnt, artist_cat_cnt, rating, length, play_cnt, date_song_added, location=cat_cur.fetchone()
     except TypeError:
       # There were no records returned from the cursor so we need to reset there records so we can start over again
-      debug_out(0,["INFO - Processed all {} tracks. Need to start over. Cnt:{}. g_grk_cnt", cat, cnt, g_trk_cnter[cat_idx]],"f")
+      debug_out(0,["INFO - Processed all {} tracks. Need to start over. Cnt:{}. g_grk_cnt", cat, cnt, c_trk_cnter[cat_idx]],"f")
       if debug_level>0:
-        f3.write("Reseting {} cursor after {} {} tracks".format(cat,g_trk_cnter[cat_idx],cat) + "\n")
+        f3.write("Reseting {} cursor after {} {} tracks".format(cat,c_trk_cnter[cat_idx],cat) + "\n")
 
       sql_stmnt.execute('update tracks set played_sw = FALSE  where category = ?;',(cat,))
       conn.commit
@@ -233,7 +235,7 @@ def main(dbug_lvl=debug_level,
     return_val=False
     debug_out(2,["process_cat_track"])
     get_cursor_rec(cat)
-    debug_out(3,["process_cat_track - writing to playlist. Genre:{}, cat_cnt:{}, cat_repeat:{}, cat_idx:{}",cat,g_trk_cnter[cat_idx],cat_repeat,cat_idx],"f")
+    debug_out(3,["process_cat_track - writing to playlist. Genre:{}, cat_cnt:{}, cat_repeat:{}, cat_idx:{}",cat,c_trk_cnter[cat_idx],cat_repeat,cat_idx],"f")
     line1='#EXTINF: ' + str(length) + ',' + artist + " - " + song 
     f2.write(line1 + "\n")
     f2.write(location + "\n")
@@ -287,7 +289,7 @@ def main(dbug_lvl=debug_level,
   # Make sure all tracks are eligble
   for x in range(len(categories)):
     sql_stmnt.execute('''update tracks set played_sw=FALSE, artist_cat_cnt = 0, cat_cnt = ?
-                         where category = ?;''',(repeat[x],categories[x]))
+                         where category = ?;''',(cat_rpt[x],categories[x]))
   
   # Everythings set to go. Lets start creating the playlist
   for cnt in range(0,playlist_tot_songs):
@@ -310,7 +312,7 @@ def main(dbug_lvl=debug_level,
     cat=categories[x]
     debug_out(1,["get a cat:",categories[x]])
     cat_idx=categories.index(cat)
-    cat_repeat=repeat[cat_idx]
+    cat_repeat=cat_rpt[cat_idx]
     debug_out(1,["Main Loop:",cnt, cat])
     while process_cat_track(cnt) == True:
       debug_out(1,[" End - Main Loop","hello"])
@@ -335,7 +337,7 @@ def main(dbug_lvl=debug_level,
   # End of "main" function
 
 if __name__ == "__main__":
-   main(dbug_lvl=5,g_pct=cat_pct,playlist_nm=playlist_name,playlist_lgth=playlist_length,create_rcntadd_cat=True,
+   main(dbug_lvl=5,c_pct=cat_pct,playlist_nm=playlist_name,playlist_lgth=playlist_length,create_rcntadd_cat=True,
         recentadd_dt=date_added,
         weighting_pct=str(20),
         create_plylist="Yes")  
