@@ -166,3 +166,4 @@ cython_debug/
 #.idea/
 
 process_db_genre_fin_order.txt
+sql/test.sql

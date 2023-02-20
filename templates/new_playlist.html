@@ -1,36 +1,107 @@
 {% extends 'base.html' %}
 {% block content %}
-      <form method = "POST">
-         <label for="playlist_name: ">Playlist Name</label><input type="text" name="playlist_name" value="{{ playlist_name }}"> </input>
-         <br>
-         <label for="playlist_length: ">Playlist length in minutes</label><input type="text" name="playlist_length" value="{{ playlist_length }}"> </input>
-         <br>
-         <br>
-         <label for="latest_pct">Latest %:</label><input type="text" name="latest_pct" value="{{ latest_pct }}"> </input>
-         <br>
-         <label for="in_rot_pct">In Rot %:</label><input type="text" name="in_rot_pct" value="{{ in_rot_pct }}"> </input>
-         <br>
-         <label for="other_pct">Other %:</label><input type="text" name="other_pct" value="{{ other_pct }}"> </input>
-         <br>
-         <label for="old_pct">Old %  :</label><input type="text" name="old_pct" value="{{ old_pct }}"> </input>
-         <br>
-         <label for="album_pct">Album %:</label><input type="text" name="album_pct" value="{{ album_pct }}"> </input>
-         <br>
-         <label for="create_recentadd_cat">Create recentadd cat:</label><input type="checkbox" name="x" value="{{ create_recentadd_cat }}"> </input>
-         <label for="weighting_pct">Weighting %:</label><input type="text" name="weighting_pct" value="{{ weighting_pct }}"> </input>
-         <br>
-         <label for="recentadd_dt">Recent Add Date</label><input type="date" name="recentadd_dt" value="{{ recentadd_dt }}"> </input>
-         <br>
-         <label for="create_playlist">Create playlist:</label><input type="checkbox" name="create_playlist" value="{{ create_playlist }}"> </input>
-         <button type="submit">Submit</button>
-      </form>
-      <br>
-      {{ msg }}
-      <br>{{ total_songs }}
-      <br>{{ nbr_of_recentadd_songs }}
-      <br>{{ nbr_of_latest_songs }}
-      <br>{{ nbr_of_in_rot_songs }}
-      <br>{{ nbr_of_other_songs }}
-      <br>{{ nbr_of_old_songs }}
-      <br>{{ nbr_of_album_songs }}
+<style>
+	body {color: #B4886B;font-weight: bold;}
+   	input {box-shadow: 2px 2px 5px grey;}
+	* {box-sizing: border-box;}
+
+	.row {display: flex;}
+
+	/* Create two equal columns that sits next to each other */
+	.column {flex: 50%;padding: 10px;}        
+</style>
+<div class="row">
+  <div class="column">
+  <form method = "POST">
+  <section>
+     
+    <div style="float:left;margin-right:20px;">
+         <label for="playlist_name">Playlist Name</label>
+         <input style="display: block;" type="text" name="playlist_name" value="{{ playlist_name }}" size="30">
+      </div>
+      <div style="float:left;margin-right:20px;">
+         <label style="display: block;" for="playlist_length: ">Length (minutes)</label>
+         <input type="text" name="playlist_length" value="{{ playlist_length }}" size="4">
+      </div>
+    <br style="clear:both;" />
+  </section>
+  <br>
+  Percentages and Repeat values for each Category(iTunes genres)
+  <section style="width: 400px;border: 1px solid;padding: 1px;">
+      <div style="float:left;margin-right:20px;">
+         <label style="display: block;" for="latest_pct">Latest</label>
+         <input type="text" name="latest_pct" value="{{ latest_pct }}" size="2">
+      </div>
+      <div style="float:left;margin-right:20px;">
+         <label style="display: block;" for="in_rot_pct">In Rot</label>
+         <input type="text" name="in_rot_pct" value="{{ in_rot_pct }}" size="2">
+      </div>
+      <div style="float:left;margin-right:20px;">
+         <label style="display: block;" for="other_pct">Other</label>
+         <input type="text" name="other_pct" value="{{ other_pct }}" size="2">
+      </div>
+      <div style="float:left;margin-right:20px;">
+         <label style="display: block;" for="old_pct">Old</label>
+         <input type="text" name="old_pct" value="{{ old_pct }}" size="2">
+      </div>
+      <div style="float:left;margin-right:20px;">
+         <label style="display: block;" for="album_pct">Album</label>
+         <input type="text" name="album_pct" value="{{ album_pct }}" size="2">
+      </div>
+      <br/>
+      <div style="float:left;margin-right:20px;">
+         <input type="text" name="latest_rpt" value="{{ latest_rpt }}" size="2">
+      </div>
+      <div style="float:left;margin-right:20px;">
+         <input type="text" name="in_rot_rpt" value="{{ in_rot_rpt }}" size="2">
+      </div>
+      <div style="float:left;margin-right:20px;">
+         <input type="text" name="other_rpt" value="{{ other_rpt }}" size="2">
+      </div>
+      <div style="float:left;margin-right:20px;">
+         <input type="text" name="old_rpt" value="{{ old_rpt }}" size="2">
+      </div>
+      <div style="float:left;margin-right:20px;">
+         <input type="text" name="album_rpt" value="{{ album_rpt }}" size="2">
+      </div>
+      <br style="clear:both;" />
+  </section>
+  <br>
+  <input type="checkbox" id="create_recentadd_cat" name="x" value="{{ create_recentadd_cat }}">
+  <label for="create_recentadd_cat">Create "Recently Added" dynamic category</label>
+  
+  <section style="width: 400px;border: 1px solid;padding: 1px;">
+  <div style="float:left;margin-right:20px;">
+         <label style="display: block;" for="weighting_pct">Weighting %</label>
+         <input type="text" name="weighting_pct" value="{{ weighting_pct }}" size="1">
+      </div>
+      <div style="float:left;margin-right:20px;">
+         <label style="display: block;" for="recentadd_dt">Recent Add Date</label>
+         <input type="date" name="recentadd_dt" value="{{ recentadd_dt }}">
+      </div>
+      <br style="clear:both;" />
+ </section>
+ <br>
+       
+  <input type="checkbox" name="create_playlist">
+  <label for="create_playlist">Create playlist</label>
+  <br>
+  <button style="box-shadow: 3px 3px 5px grey;" type="submit">Submit</button>
+  <hr>
+  <label for="debug_lvl">Debug Level(1-5):</label>
+  <input type="text" name="debug_lvl" value="{{ debug_lvl }}" size="1">
+  </form>
+  </div>
+  <div class="column" style="background-color:#bbb;">  
+    <h4>{{ msg }}</h4>
+    <br>{{ total_songs }}
+    <br>{{ nbr_of_recentadd_songs }}
+    <br>{{ nbr_of_latest_songs }}
+    <br>{{ nbr_of_in_rot_songs }}
+    <br>{{ nbr_of_other_songs }}
+    <br>{{ nbr_of_old_songs }}
+    <br>{{ nbr_of_album_songs }}
+  </div>
+</div>
+  
 {% endblock %}

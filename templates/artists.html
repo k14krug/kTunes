@@ -14,8 +14,8 @@
             <td>Genre</td>
             <td>Last Play Dt</td>
             <td>Rating</td>
-            <td>Cnt</td>
-            <td>Repeat Cnt</td>
+            <td>Play Cnt</td>
+            <td>Category</td>
         </thead>
         
         {% for row in t_tracks %}
@@ -25,8 +25,8 @@
               <td>{{row["genre"]}}</td>
               <td>{{row["last_play_dt"]}}</td>
               <td>{{row["rating"]}}</td>
-              <td>{{row["cnt"]}}</td>
-              <td>{{row["repeat_cnt"]}}</td>
+              <td>{{row["play_cnt"]}}</td>
+              <td>{{row["category"]}}</td>
            </tr>
         {% endfor %}
      </table>
