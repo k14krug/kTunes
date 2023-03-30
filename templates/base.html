@@ -1,37 +1,114 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
   <head>
-    <!-- Required meta tags -->
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-
-    <!-- Bootstrap CSS -->
+    <title>{% block title %}{% endblock %}</title>
+    <!-- Required CSS -->
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
-
-    <title>{% block title %} {% endblock %}</title>
+    <style>
+      /* Custom CSS */
+      table {
+        border-collapse: collapse;
+        width: 100%;
+        max-width: 1000px;
+        border: 1px solid #ddd;
+        margin-bottom: 10px;
+      }
+      th, td {
+        text-align: left;
+        padding: 3px;
+        font-size: 14px;
+        border-bottom: 1px solid #ddd;
+      }
+      th {
+        background-color: #4CAF50;
+        color: white;
+      }
+      .pagination {
+        margin: auto;
+      }
+      .table-container {
+        overflow-y: scroll;
+        height: 300px;
+      }
+      .pagination-link {
+        padding: 6px;
+        border: 1px solid #ddd;
+        text-decoration: none;
+        color: black;
+      }
+      .pagination a.active {
+        background-color: #4CAF50;
+        color: white;
+        border: 1px solid #4CAF50;
+      }
+      .pagination a:hover:not(.active) {
+        background-color: #ddd;
+      }
+      .search {
+        display: inline-flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+        margin-right: 10px;
+      }
+      .search label {
+        margin-right: 10px;
+      }
+      .per-page {
+        margin-left: 20px;
+      }
+      .navbar-nav .active {
+        background-color: #4CAF50;
+      }
+    </style>
   </head>
   <body>
+    {% set active_tracks = '' %}
+    {% set active_config = '' %}
+    
+    {% if request.path == url_for('tracks') %}
+      {% set active_tracks = 'active' %}
+    {% elif request.path == url_for('create_playlist') %}
+      {% set active_config = 'active' %}
+    {% endif %}
+    
     <nav class="navbar navbar-expand-md navbar-light bg-light">
-        <a class="navbar-brand" href="{{ url_for('index')}}">kTunes</a>
-        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
-            <span class="navbar-toggler-icon"></span>
-        </button>
-        <div class="collapse navbar-collapse" id="navbarNav">
-            <ul class="navbar-nav">
-            <li class="nav-item active">
-                <a class="nav-link" href="#">About</a>
-            </li>
-            </ul>
-        </div>
+      <a class="navbar-brand" href="{{ url_for('tracks')}}">kTunes</a>
+      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav">
+          <li class="nav-item {{ active_tracks }}">
+            <a class="nav-link" href="{{ url_for('tracks')}}">Library</a>
+          </li>
+          <li class="nav-item {{ active_config }}">
+            <a class="nav-link" href="{{ url_for('create_playlist')}}">Create Playlist</a>
+          </li>
+        </ul>
+      </div>
     </nav>
+    
     <div class="container">
         {% block content %} {% endblock %}
     </div>
 
     <!-- Optional JavaScript -->
     <!-- jQuery first, then Popper.js, then Bootstrap JS -->
-    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/2.9.3/umd/popper.min.js" integrity="sha512-TY25j37vCUoV+jJlnaX9yxC/W/avf08RE67SqwW76jQQZWXf92tG+1t8/YbWgA9dLQhAq3vq8QsHnGZaSOgZjA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-infinitescroll/3.0.6/jquery.infinitescroll.min.js"></script>
+    <script>
+    $(document).ready(function() { 
+        var height = $(window).height() / 36;
+        var max_rows = Math.round(height);
+        $('#row_select option:first').text(max_rows).val(max_rows);
+    });
+    </script>
   </body>
 </html>

@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+
+{% block title %}Tracks{% endblock %}
+
+{% block content %}
+<div id="tracks-list">
+  {% include "tracks-list.html" %}
+</div>
+<div id="pagination">
+  <a href="/load-more-tracks/1"></a>
+</div>
+{% endblock %}

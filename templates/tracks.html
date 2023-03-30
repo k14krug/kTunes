@@ -1,0 +1,82 @@
+{% extends 'base.html' %}
+
+{% block title %}Tracks{% endblock %}
+
+
+{% block content %}
+	<form method="get" action="{{ url_for('tracks') }}" class="search">
+		<label for="search_artist">Artist:</label>
+		<input type="text" name="search_artist" value="{{ search_artist }}">
+		<label for="search_song">Song:</label>
+		<input type="text" name="search_song" value="{{ search_song }}">
+		<label for="search_category">Category:</label>
+		<input type="text" name="search_category" value="{{ search_category }}">
+        <select id="row_select" name="per_page" class="per-page" onchange="this.form.submit()"> 
+            <option value="max_rows"> </option> 
+            <option value="20" {% if per_page == 20 %}selected{% endif %}>20</option>
+            <option value="25" {% if per_page == 25 %}selected{% endif %}>25</option>
+            <option value="30" {% if per_page == 30 %}selected{% endif %}>30</option>
+            <option value="50" {% if per_page == 50 %}selected{% endif %}>50</option>
+            <option value="100" {% if per_page == 100 %}selected{% endif %}>100</option> 
+        </select> 
+        <button type="submit">Search</button>
+	</form>
+  <div class="table-container"></div>  
+    <table>
+      <thead>
+        <tr>
+          <th>Artist</th>
+          <th>Song</th>
+          <th>Category</th>
+          <th>Album</th>
+          <th>Play Count</th>
+          <th>Last Played</th>
+          <th>Date Added</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for track in tracks %}
+          <tr>
+            <td>{{ track['artist'] }}</td>
+            <td>{{ track['song'] }}</td>
+            <td>{{ track['category'] }}</td>
+            <td>{{ track['album'] }}</td>
+            <td>{{ track['play_cnt'] }}</td>
+            <td>{{ track['last_play_dt'] }}</td>
+            <td>{{ track['data_added'] }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <div class="pagination">
+        <span class="pagination-text">
+          {% set start_row = (page - 1) * per_page + 1 %}
+          {% set end_row = page * per_page %}
+          {% if end_row > count %}
+            {% set end_row = count %}
+          {% endif %}
+          {{ start_row }}-{{ end_row }} of {{ count }}
+        </span>
+        {% set args_dict = request.args.to_dict() %}
+        {% if page > 1 %}
+          {% set _ = args_dict.update({'page': 1}) %}
+          <a href="{{ url_for('tracks', **args_dict) }}" class="pagination-link">&laquo; First</a>
+          {% set _ = args_dict.update({'page': page-1}) %}
+          <a href="{{ url_for('tracks', **args_dict) }}" class="pagination-link">&lt; Previous</a>
+        {% endif %}
+        {% for i in range(start_page, end_page+1) %}
+          {% if i == page %}
+            <a href="#" class="pagination-link active">{{ i }}</a>
+          {% else %}
+            {% set _ = args_dict.update({'page': i}) %}
+            <a href="{{ url_for('tracks', **args_dict) }}" class="pagination-link">{{ i }}</a>
+          {% endif %}
+        {% endfor %}
+        {% if page < total_pages %}
+          {% set _ = args_dict.update({'page': page-1}) %}
+          <a href="{{ url_for('tracks', **args_dict) }}" class="pagination-link">Next &gt;</a>
+          {% set _ = args_dict.update({'page': total_pages}) %}
+          <a href="{{ url_for('tracks', **args_dict) }}" class="pagination-link">Last &raquo;</a>
+        {% endif %}
+      </div>
+{% endblock %} 

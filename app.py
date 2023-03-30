@@ -1,227 +1,197 @@
+from flask import Flask, render_template, request
+from flask import jsonify
+import configparser
 import sqlite3
-#from tkinter.tix import ROW
-from flask import Flask,redirect, url_for, request, render_template
-from werkzeug.exceptions import abort
-import tkinter as tk
-from tkinter import ttk
-from tkinter.messagebox import askyesno
-from datetime import datetime,timedelta
+from process_db import main
 import load_xml
-import process_db
 
-# Create your Flask app instance with the name "app". Pass it the special var __name__ that holds the name of the current Python module.
-# Often the python module is also named "app" but does not need to be. If you use another name then you need to tell flask
-# what name you used when you start flask by exporting the FLASK_APP variable.
 app = Flask(__name__)
 
+# Database
+DATABASE = 'kTunes.sqlite'
+
 def get_db_connection():
-    conn = sqlite3.connect('kTunes.sqlite')
+    conn = sqlite3.connect(DATABASE)
     conn.row_factory = sqlite3.Row
     return conn
 
-@app.route('/', methods=["GET", "POST"]   )
-def enter_data():
-   if request.method == "POST":
-      artist = request.form["artist"]
-      artist_tracks = get_artist_tracks(artist)
-      return render_template('artists.html', t_tracks=artist_tracks, artist=artist)
-   else:
-      return render_template('menu.html')
 
-@app.route('/index')
-def index():
-    conn = get_db_connection()
-    artist_cnt = conn.execute('select artist, max(last_play_dt) last_play_dt,  count(*) cnt from tracks group by artist').fetchall()
-    conn.close()
-    #print("Index Row=",artists)
-    return render_template('index.html', t_artist_cnt=artist_cnt)
-
-def get_artist_tracks(artist):
-    #print('In get_artist',artist)
-    conn = get_db_connection()
-    a = "%" + artist + "%"
-    artist_tracks = conn.execute('SELECT artist, song, genre, last_play_dt, rating, play_cnt, category FROM tracks WHERE artist like ?',
-                        (a,)).fetchall()
-    conn.close()
-    if artist_tracks is None:
-        print("Uh oh - nothing to post")
-        abort(404)
-    return artist_tracks
-
-@app.route('/artist/<artist>', methods=["GET", "POST"])
-def disp_artist(artist):
-   if request.method == "POST":
-      artist = request.form["artist"]
-      artist_tracks = get_artist_tracks(artist)
-   else:
-      artist_tracks = get_artist_tracks(artist)
-   return render_template('artists.html', t_tracks=artist_tracks, artist=artist)
-
-@app.route("/repeat", methods=["GET", "POST"])
-def new_playlist():
-    if request.method == "POST":
-        repeat = []
-        repeat_input = request.form.get("repeat")
-        repeat_list = repeat_input.split(",")
-        for item in repeat_list:
-            repeat.append(int(item))
-
-        playlist = {
-            "songs": [],
-            "repeat": repeat
+# Define the path to the config file
+config_path = "ktunes.ini"
+config = configparser.ConfigParser()
+config.read(config_path)
+if not config.has_section("misc"):
+    print("config doesn't have misc section, gonna write out a default one")
+    default_config = {
+        "misc": {
+            "playlist_name": "",
+            "playlist_lgth": "",
+            "recently_added_switch": "",
+            "RA_weighting_factor": "",
+            "RA_play_cnt": "",
+            "create_playlist": "",
+            "debug_lvl": ""
+        },
+        "categories": {
+            "cat1": 'zed',
+            "cat1_pct": '33',
+            "cat1_repeat": 33
         }
+    }
+    print("before reading default_config")
+    config.read_dict(default_config)
+    with open(config_path, "w") as config_file:
+        config.write(config_file)
+else:
+    print("config has misc section:",config["misc"])
+    
+# Define the default configuration
 
-        playlists.append(playlist)
-        return redirect(url_for("index"))
-    return render_template("new_playlist.html")
+# Create the configuration file if it doesn't exist
+#config.read(config_path)
 
-# From main screen if you choose create playlist, the form will post which allows process_db.py to be executed.
-@app.route('/newplaylist',methods = ['POST', 'GET'])
-def create_playlist_form():
-   if request.method == "POST":
-      
-      pcts = [
-              float(0),
-              float(request.form["latest_pct"]),
-              float(request.form["in_rot_pct"]),
-              float(request.form["other_pct"]),
-              float(request.form["old_pct"]),
-              float(request.form["album_pct"])
-             ]
-      rpts = [
-              float(0),
-              float(request.form["latest_rpt"]),
-              float(request.form["in_rot_rpt"]),
-              float(request.form["other_rpt"]),
-              float(request.form["old_rpt"]),
-              float(request.form["album_rpt"])
-             ]
-         
-      playlist_name=request.form["playlist_name"]
-      playlist_length=request.form["playlist_length"]
-      if request.form.get('create_playlist'):
-        create_playlist="Yes"
-      else:
-         create_playlist="No"
-      create_recentadd_cat="No"
-      if request.form.get("x"):
-         create_recentadd_cat=True
-         recentadd_dt=request.form["recentadd_dt"]
-         weighting_pct=request.form["weighting_pct"]
-      else:
-         recentadd_dt=""
-         weighting_pct=""
-      debug_lvl=request.form["debug_lvl"]
+# Function to search for tracks by artist, song and category and paginated the result set
+def search_tracks(artist, song, category, page, per_page):
+    db = get_db_connection()
+    
+    query = "SELECT Artist, song, category, Album, play_cnt, strftime('%Y-%m-%d', last_play_dt) AS last_play_dt, strftime('%Y-%m-%d', date_added) AS date_added FROM tracks WHERE 1=1"
+    if song:
+        query += " AND lower(song) LIKE '%" + song.lower() +  "%'"
+    if artist:
+        query += " AND lower(Artist) LIKE '%" + artist.lower() + "%'"
+    if category:
+        query += " AND category LIKE '%" + category.lower() + "%'"
+    count_query = f"SELECT count(*) FROM ({query})"
+    #print("count_query=:",count_query)
+    cursor = db.execute(count_query)
+    count = cursor.fetchone()[0]
+    offset = (page - 1) * per_page
+    limit = per_page
+    query += ' ORDER BY artist, song  LIMIT ?, ?'
+    cursor = db.execute(query,(offset, limit))
+    #query= 'SELECT * FROM tracks WHERE artist LIKE ? AND song LIKE ? AND category LIKE ? ORDER BY artist, song, category LIMIT ?, ?'
+    #cursor = db.execute(query, ('%{}%'.format(artist), '%{}%'.format(song), '%{}%'.format(category), offset, limit))
+    tracks = cursor.fetchall()
+    #print("tracks=",tracks)
+    cursor.close()
+    return tracks, count
 
-      # Calling process_db.main
-      total_songs,nbr_of_genre_songs,dup_playlist=process_db.main(int(debug_lvl),
-                                                      pcts,
-                                                      rpts,
-                                                      playlist_name,
-                                                      playlist_length,
-                                                      create_recentadd_cat, recentadd_dt, weighting_pct,
-                                                      create_playlist)
-      
-      nbr_of_recentadd_songs=nbr_of_genre_songs[0]
-      nbr_of_latest_songs=nbr_of_genre_songs[1]
-      nbr_of_in_rot_songs=nbr_of_genre_songs[2]
-      nbr_of_other_songs=nbr_of_genre_songs[3]
-      nbr_of_album_songs=nbr_of_genre_songs[4]
-      nbr_of_old_songs=nbr_of_genre_songs[5]
-      playlist_name=request.form["playlist_name"]
-      latest_pct=request.form["latest_pct"]
-      in_rot_pct=request.form["in_rot_pct"]
-      other_pct=request.form["other_pct"]
-      old_pct=request.form["old_pct"]
-      album_pct=request.form["album_pct"]
-      latest_rpt=request.form["latest_rpt"]
-      in_rot_rpt=request.form["in_rot_rpt"]
-      other_rpt=request.form["other_rpt"]
-      old_rpt=request.form["old_rpt"]
-      album_rpt=request.form["album_rpt"]
-      recentadd_dt=request.form["recentadd_dt"]
-      weighting_pct=request.form["weighting_pct"]
-      if create_playlist == "Yes":
-         if dup_playlist:
-            msg="Playlist "+request.form["playlist_name"]+" already exist. Please provide a new name"
-         else:
-            msg="Playlist "+request.form["playlist_name"]+" (re)created with the following song counts"
-      else:
-         msg='Proposed song count details'
-      if nbr_of_recentadd_songs == 0:
-         recentadd_lit="Recent Add - "+ str(nbr_of_recentadd_songs) + ' ("Recently Added" dyn cat not selected)'
-      else:
-         recentadd_lit="Recent Add - "+ str(nbr_of_recentadd_songs)
-      return render_template("new_playlist.html",playlist_name=playlist_name, 
-                                                 playlist_length=playlist_length,
-                                                 latest_pct=latest_pct,
-                                                 in_rot_pct=in_rot_pct,
-                                                 other_pct=other_pct,
-                                                 old_pct=old_pct,
-                                                 album_pct=album_pct,
-                                                 latest_rpt=latest_rpt,
-                                                 in_rot_rpt=in_rot_rpt,
-                                                 other_rpt=other_rpt,
-                                                 old_rpt=old_rpt,
-                                                 album_rpt=album_rpt,
-                                                 create_recentadd_cat=create_recentadd_cat,
-                                                 recentadd_dt=recentadd_dt,
-                                                 weighting_pct=weighting_pct,
-                                                 create_playlist="Yes",
-                                                 debug_lvl=debug_lvl,
-                                                 msg=msg,
-                                                 total_songs=" Total Songs - "+ str(total_songs),
-                                                 nbr_of_recentadd_songs=recentadd_lit,
-                                                 nbr_of_latest_songs="  Latest - "+ str(nbr_of_latest_songs),
-                                                 nbr_of_in_rot_songs="  In Rot - "+ str(nbr_of_in_rot_songs),
-                                                 nbr_of_other_songs="  Other - "+ str(nbr_of_other_songs),
-                                                 nbr_of_old_songs="  Old - "+ str(nbr_of_old_songs),
-                                                 nbr_of_album_songs="  Album - "+ str(nbr_of_album_songs))  
-   else:
-      playlist_length=2500
-      
-      latest_pct=35
-      in_rot_pct=25
-      other_pct=15
-      old_pct=15
-      album_pct=10
-      
-      latest_rpt=20
-      in_rot_rpt=30
-      other_rpt=50
-      old_rpt=50
-      album_rpt=50
-      
-      weighting_pct=20
-      
-      create_recentadd_cat="No"
-      curr_dt = datetime.now() 
-      curr_dt = curr_dt.strftime("%m_%d_%y")
-      playlist_name="kTunes_" + curr_dt 
-      try:
-        recentadd_dt
-      except NameError:
-        six_months_ago = datetime.now() - timedelta(days=180)
-        recentadd_dt=six_months_ago.strftime("%Y-%m-%d")
-      #print("app.py - recentad_dt=",recentadd_dt)
-      debug_lvl=0
-      return render_template("new_playlist.html",playlist_name=playlist_name, 
-                                                 playlist_length=playlist_length,
-                                                 latest_pct=latest_pct,
-                                                 in_rot_pct=in_rot_pct,
-                                                 other_pct=other_pct,
-                                                 old_pct=old_pct,
-                                                 album_pct=album_pct,
-                                                 latest_rpt=latest_rpt,
-                                                 in_rot_rpt=in_rot_rpt,
-                                                 other_rpt=other_rpt,
-                                                 old_rpt=old_rpt,
-                                                 album_rpt=album_rpt,
-                                                 create_recentadd_cat=create_recentadd_cat,
-                                                 recentadd_dt=recentadd_dt,
-                                                 weighting_pct=weighting_pct,
-                                                 debug_lvl=debug_lvl,
-                                                 msg="Enter data & hit Submit to create new playlist")
+'''
+@app.route('/get_max_rows')
+def get_max_rows():
+    row_height = 30  # Set the height of a single row in pixels
+    screen_height = request.args.get('screen_height', type=int)  # Get the user's screen height from the query parameters
+    if not screen_height:
+        return jsonify(error='screen_height parameter is missing')
+    else:
+        print("screen hight=",screen_height)
+    max_rows = int(screen_height / row_height)  # Calculate the maximum number of rows that can be displayed on the user's screen
+    return jsonify(max_rows=max_rows)
+'''
 
-if __name__ == '__main__':
-    app.run(debug=True)
+@app.route("/config", methods=["GET", "POST"])
+def create_playlist():
+    # Read the configuration file
+    config.read(config_path)
+
+    if request.method == "POST":    # Update the configuration file with the new values
+            # Read the category percentage values from the form
+        form_data = request.form
+        # display each field and its value
+        for field, value in form_data.items():
+            print(f"{field}: {value}") 
+        pcts = [
+        request.form["cat1_pct"],
+        request.form["cat2_pct"],
+        request.form["cat3_pct"],
+        request.form["cat4_pct"],
+        request.form["cat5_pct"]
+       ]
+
+        # Convert the percentage values to floats and compute the total
+        total_pct = sum(float(pct) for pct in pcts)
+
+        # Check if the total is 100, and if not, display an error message
+        if total_pct != 100:
+            error_msg = "# # # Category percentages must add up to 100 (current total is {}). Values reset. # # #.".format(total_pct)
+            return render_template("config.html", config=config, error=error_msg)
+
+        config["misc"]["playlist_name"] = request.form["playlist_name"]
+        config["misc"]["playlist_lgth"] = request.form["playlist_lgth"]
+        config["misc"]["recently_added_switch"] = request.form["recently_added_switch"]
+        config["misc"]["RA_weighting_factor"] = request.form["RA_weighting_factor"]
+        config["misc"]["RA_play_cnt"] = request.form["RA_play_cnt"]
+        config["misc"]["create_playlist"] = request.form["create_playlist"]
+        config["misc"]["debug_lvl"] = request.form["debug_lvl"]
+
+        config.set("categories", "cat1", request.form["cat1"])
+        config.set("categories", "cat1_pct", request.form["cat1_pct"])
+        config.set("categories", "cat1_repeat", request.form["cat1_repeat"])
+
+        config.set("categories", "cat2", request.form["cat2"])
+        config.set("categories", "cat2_pct", request.form["cat2_pct"])
+        config.set("categories", "cat2_repeat", request.form["cat2_repeat"])
+
+        config.set("categories", "cat3", request.form["cat3"])
+        config.set("categories", "cat3_pct", request.form["cat3_pct"])
+        config.set("categories", "cat3_repeat", request.form["cat3_repeat"])
+
+        config.set("categories", "cat4", request.form["cat4"])
+        config.set("categories", "cat4_pct", request.form["cat4_pct"])
+        config.set("categories", "cat4_repeat", request.form["cat4_repeat"])
+
+        config.set("categories", "cat5", request.form["cat5"])
+        config.set("categories", "cat5_pct", request.form["cat5_pct"])
+        config.set("categories", "cat5_repeat", request.form["cat5_repeat"])
+
+
+        # Write the updated configuration file
+        with open(config_path, "w") as config_file:
+            config.write(config_file)
+        config_parser_dict = {s:dict(config.items(s)) for s in config.sections()}
+        total_songs, nbr_of_genre_songs, dup_playlist = main(config_parser_dict)
+    # Read the configuration file
+    config.read(config_path)
+
+    # Render the template with the configuration data
+    return render_template("config.html", config=config)
+
+# Route to display the paginated table of tracks
+@app.route('/tracks', methods=['GET', 'POST'])
+def tracks():
+    print("start /Tracks")
+    screen_height = request.args.get('screen_height', type=int)
+    if screen_height:
+        print("got a screen_height of",screen_height)
+        max_rows_response = requests.get(f"{request.url_root}get_max_rows?screen_height={screen_height}")
+        if max_rows_response.status_code == 200:
+            max_rows = max_rows_response.json().get('max_rows')
+            per_page = max_rows
+        else:
+            per_page = 20
+    else:
+        print("didn't get a screen height")
+        per_page = request.args.get('per_page', 20, type=int)
+    
+    try:
+        page = int(request.args.get('page', 1))
+    except ValueError:
+        page = 1
+    
+    search_artist = request.args.get('search_artist', '')
+    search_song = request.args.get('search_song', '')
+    search_category = request.args.get('search_category', '')
+    #if search_artist or search_song or search_category:
+    tracks, count = search_tracks(search_artist, search_song, search_category, page, per_page)
+    #else:
+    #    tracks, count = paginate(page, per_page)
+    total_pages = (count + per_page - 1) // per_page     
+    start_page = max(1, page - 2)
+    end_page = min(total_pages, page + 2)  
+    print("end_page=",end_page) 
+    print(render_template('tracks.html', tracks=tracks, count=count, total_pages=total_pages, page=page, per_page=per_page, start_page=start_page, end_page=end_page, search_artist=search_artist, search_song=search_song, search_category=search_category))        
+    return render_template('tracks.html', tracks=tracks, count=count, total_pages=total_pages, page=page, per_page=per_page, start_page=start_page, end_page=end_page, search_artist=search_artist, search_song=search_song, search_category=search_category)
+
+
+if __name__ == "__main__":
+   app.run(debug=True)
