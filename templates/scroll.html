@@ -1,12 +1,62 @@
 {% extends "base.html" %}
 
-{% block title %}Tracks{% endblock %}
-
 {% block content %}
-<div id="tracks-list">
-  {% include "tracks-list.html" %}
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-sm-12">
+      <table class="table table-hover">
+        <thead>
+          <tr>
+            <th>Artist</th>
+            <th>Song</th>
+            <th>Category</th>
+            <th>Album</th>
+            <th>Play Count</th>
+            <th>Last Played</th>
+            <th>Date Added</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for track in tracks %}
+          <tr>
+            <td>{{ track[0] }}</td>
+            <td>{{ track[1] }}</td>
+            <td>{{ track[2] }}</td>
+            <td>{{ track[3] }}</td>
+            <td>{{ track[4] }}</td>
+            <td>{{ track[5] }}</td>
+            <td>{{ track[6] }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
 </div>
-<div id="pagination">
-  <a href="/load-more-tracks/1"></a>
-</div>
+{% endblock %}
+
+{% block custom_css %}
+<style>
+  .table {
+    max-height: 500px;
+    overflow-y: scroll;
+    margin-bottom: 0;
+  }
+
+  ::-webkit-scrollbar {
+    width: 5px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background-color: #f5f5f5;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background-color: #000000;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: #555;
+  }
+</style>
 {% endblock %}

@@ -21,7 +21,7 @@
         </select> 
         <button type="submit">Search</button>
 	</form>
-  <div class="table-container"></div>  
+  <div class="table"></div>  
     <table>
       <thead>
         <tr>
@@ -79,4 +79,29 @@
           <a href="{{ url_for('tracks', **args_dict) }}" class="pagination-link">Last &raquo;</a>
         {% endif %}
       </div>
+      {% block custom_css %}
+      <style>
+        .table {
+          max-height: 500px;
+          overflow-y: scroll;
+          margin-bottom: 0;
+        }
+      
+        ::-webkit-scrollbar {
+          width: 5px;
+        }
+      
+        ::-webkit-scrollbar-track {
+          background-color: #f5f5f5;
+        }
+      
+        ::-webkit-scrollbar-thumb {
+          background-color: #000000;
+        }
+      
+        ::-webkit-scrollbar-thumb:hover {
+          background-color: #555;
+        }
+      </style>      
+      {% endblock %} 
 {% endblock %} 
