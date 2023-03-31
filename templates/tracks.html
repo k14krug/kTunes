@@ -21,7 +21,7 @@
         </select> 
         <button type="submit">Search</button>
 	</form>
-  <div class="table"></div>  
+  <div class="table table-striped" style="overflow-y: auto;"></div>  
     <table>
       <thead>
         <tr>
@@ -34,7 +34,7 @@
           <th>Date Added</th>
         </tr>
       </thead>
-      <tbody style="overflow-y: scroll; height: 500px;">
+      <tbody>
         {% for track in tracks %}
           <tr>
             <td>{{ track['artist'] }}</td>
