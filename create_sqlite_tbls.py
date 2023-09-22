@@ -20,7 +20,8 @@ CREATE TABLE Artist_last_played (
 CREATE UNIQUE INDEX idx_artist_genre 
 ON Artist_last_played (artist,genre);
 
-CREATE TABLE Tracks (
+CREATE TABLE tracks (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
     song TEXT,
     artist TEXT, 
     album text,
@@ -46,7 +47,7 @@ CREATE TABLE Playlist (
     playlist_nm TEXT, 
     length INTEGER,
     nbr_of_songs INTEGER,
-    recentadd_dt DATE,
+    recentadd_play_cnt DATE,
     debug_level TEXT,
     category TEXT,
     pct INTEGER,

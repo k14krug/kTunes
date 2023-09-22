@@ -20,7 +20,7 @@ if create_db == "Yes":
   creat_db="Yes"
   import create_sqlite_tbls
 else:
-  print("SQLite3" + DB + "already exist - skipping createion.")
+  print("SQLite3" + DB + "already exist - skipping creation.")
 
 conn = sqlite3.connect(DB)
 cur = conn.cursor()
@@ -72,25 +72,26 @@ for entry in songs:
     
     # I did not use "insert or replace" because I want to capture the count of how many records are updated vs new inserts. 
     update = False
-    data = [album, genre,length,last_play_dt,rating,play_cnt,name,artist,location]
+    data = [album, genre,genre, length,last_play_dt,rating,play_cnt,name,artist,location]
     try:
-      cur.execute('''INSERT INTO Tracks
-          (song, artist,  album, location, genre, length, last_play_dt, date_added, rating, play_cnt) 
-          VALUES ( ?, ?, ?, ?, ?,?, ?, ?, ?, ? )''', 
-          (name, artist, album, location, genre, length, last_play_dt, date_added, rating, play_cnt))
+      cur.execute('''INSERT INTO tracks
+          (song, artist,  album, location, genre, category, length, last_play_dt, date_added, rating, play_cnt) 
+          VALUES ( ?, ?, ?, ?, ?,?, ?, ?, ?, ?, ? )''', 
+          (name, artist, album, location, genre, genre, length, last_play_dt, date_added, rating, play_cnt))
     except:
       update = True
-      #print('Updating track {}'.format([name, artist]))
-      cur.execute('''UPDATE TRACKS
+      #print('Updating track {}'.format([name, artist,last_play_dt]))
+      cur.execute('''UPDATE tracks
               SET album        = ? ,
                   genre        = ? ,
+                  category     = ? ,
                   length       = ? ,
                   last_play_dt = ? ,
                   rating       = ? ,
-                  play_cnt     = ? 
+                  play_cnt     = ?  
               WHERE song     = ?
                 AND artist   = ?
-                AND location = ?''',data)
+                AND location = ? ''',data)
       song_count_updates += 1    
     if update != True:
       song_count_inserts  += 1

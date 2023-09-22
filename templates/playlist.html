@@ -1,4 +1,6 @@
-  <form method="get" action="{{ url_for('tracks') }}" class="search">
+  <form method="get" action="{{ url_for(endpoint) }}" class="search">
+    <label for="playlist">playlist:</label>
+    <input type="text" name="playlist" value="{{ q_dict['playlist'] }}">
     <label for="artist">Artist:</label>
     <input type="text" name="artist" value="{{ q_dict['artist'] }}">
     <label for="song">Song:</label>
@@ -19,13 +21,13 @@
     <table>
       <thead>
           <tr>
+              <th>Playlist</th>
+              <th>Count</th>
               <th>Artist</th>
               <th>Song</th>
               <th>Category</th>
-              <th>Album</th>
               <th>Play Count</th>
               <th>Last Play Date</th>
-              <th>Date Added</th>
           </tr>
       </thead>
       <tbody>

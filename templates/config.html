@@ -1,23 +1,29 @@
-<!DOCTYPE html>
-<html>
-  <head>
-    <meta charset="UTF-8">
-    <title>ktunes.ini Configuration</title>
-  </head>
-  <body>
-    <h1>ktunes.ini Configuration</h1>
+{% extends 'base.html' %}
 
-    <form method="POST" action="{{ url_for('config_file') }}">
+{% block title %}Create Playlist{% endblock %}
+
+
+{% block content %}
+    <form method="POST" action="{{ url_for('create_playlist') }}">
       <fieldset>
-        <legend>Miscellaneous Options</legend>
         <label for="playlist_name">Playlist Name:</label>
         <input type="text" name="playlist_name" value="{{ config['misc']['playlist_name'] }}"><br><br>
-        <label for="recently_added">Recently Added:</label>
-        <label for="recently_added">Recently Added:</label>
-        <input type="checkbox" name="recently_added_switch" {% if config['misc']['recently_added_switch'] %}checked{% endif %}><br><br>
-        <br><br>
-        <label for="weighting_factor">Weighting Factor:</label>
-                <input type="number" name="weighting_factor" value="{{ config['misc']['weighting_factor'] }}" min="1" max="100"><br><br>
+        <label for="playlist_lgth">Playlist length (in minutes):</label>
+        <input type="text" name="playlist_lgth" value="{{ config['misc']['playlist_lgth'] }}"><br><br>
+        <label for="recently_added">Create RecentAddedCat:</label>
+        <input type="checkbox" name="recently_added_switch" {% if config['misc']['recently_added_switch'] %}checked{% endif %}><br>
+        <label for="RA_play_cnt">Play count for recently added:</label>
+        <input type="text" name="RA_play_cnt" value="{{ config['misc']['RA_play_cnt'] }}" min="1" max="5" size="1"><br>
+        <label for="RA_weighting_factor">Weighting Factor:</label>
+        <input type="number" name="RA_weighting_factor" value="{{ config['misc']['RA_weighting_factor'] }}" min="1" max="100"><br><br>
+        <label for="create_playlist">Create playlist</label>
+        <input type="checkbox" name="create_playlist" {% if config['misc']['create_playlist'] %}checked{% endif %}><br>
+        <label for="debug_lvl">Debug Level(1-5):</label>
+        <input type="text" name="debug_lvl" value="{{ config['misc']['debug_lvl'] }}" min="1" max="5" size="1">
+        
+ 
+  
+        
 
       </fieldset>
       <br>
@@ -37,36 +43,37 @@
           </tr>
           <tr>
             <td>1</td>
-            <td><input type="text" name="option1_category" value="{{ config['categories']['option1_category'] }}"></td>
-            <td><input type="number" name="option1_category_pct" value="{{ config['categories']['option1_category_pct'] }}" min="1" max="100"></td>
-            <td><input type="number" name="option1_category_repeat" value="{{ config['categories']['option1_category_repeat'] }}" min="1"></td>
+            <td><input type="text" name="cat1" value="{{ config['categories']['cat1'] }}"></td>
+            <td><input type="number" name="cat1_pct" value="{{ config['categories']['cat1_pct'] }}" min="1" max="100"></td>
+            <td><input type="number" name="cat1_repeat" value="{{ config['categories']['cat1_repeat'] }}" min="1"></td>
           </tr>
           <tr>
             <td>2</td>
-            <td><input type="text" name="option2_category" value="{{ config['categories']['option2_category'] }}"></td>
-            <td><input type="number" name="option2_category_pct" value="{{ config['categories']['option2_category_pct'] }}" min="1" max="100"></td>
-            <td><input type="number" name="option2_category_repeat" value="{{ config['categories']['option2_category_repeat'] }}" min="1"></td>
+            <td><input type="text" name="cat2" value="{{ config['categories']['cat2'] }}"></td>
+            <td><input type="number" name="cat2_pct" value="{{ config['categories']['cat2_pct'] }}" min="1" max="100"></td>
+            <td><input type="number" name="cat2_repeat" value="{{ config['categories']['cat2_repeat'] }}" min="1"></td>
           </tr>
           <tr>
             <td>3</td>
-            <td><input type="text" name="option3_category" value="{{ config['categories']['option3_category'] }}"></td>
-            <td><input type="number" name="option3_category_pct" value="{{ config['categories']['option3_category_pct'] }}" min="1" max="100"></td>
-            <td><input type="number" name="option3_category_repeat" value="{{ config['categories']['option3_category_repeat'] }}" min="1"></td>
+            <td><input type="text" name="cat3" value="{{ config['categories']['cat3'] }}"></td>
+            <td><input type="number" name="cat3_pct" value="{{ config['categories']['cat3_pct'] }}" min="1" max="100"></td>
+            <td><input type="number" name="cat3_repeat" value="{{ config['categories']['cat3_repeat'] }}" min="1"></td>
           </tr>
           <tr>
             <td>4</td>
-            <td><input type="text" name="option4_category" value="{{ config['categories']['option4_category'] }}"></td>
-            <td><input type="number" name="option4_category_pct" value="{{ config['categories']['option4_category_pct'] }}" min="1" max="100"></td>
-            <td><input type="number" name="option4_category_repeat" value="{{ config['categories']['option4_category_repeat'] }}" min="1"></td>
+            <td><input type="text" name="cat4" value="{{ config['categories']['cat4'] }}"></td>
+            <td><input type="number" name="cat4_pct" value="{{ config['categories']['cat4_pct'] }}" min="1" max="100"></td>
+            <td><input type="number" name="cat4_repeat" value="{{ config['categories']['cat4_repeat'] }}" min="1"></td>
           </tr>
           <tr>
             <td>5</td>
-            <td><input type="text" name="option5_category" value="{{ config['categories']['option5_category'] }}"></td>
-            <td><input type="number" name="option5_category_pct" value="{{ config['categories']['option5_category_pct'] }}" min="1" max="100"></td>
-            <td><input type="number" name="option5_category_repeat" value="{{ config['categories']['option5_category_repeat'] }}" min="1"></td>
+            <td><input type="text" name="cat5" value="{{ config['categories']['cat5'] }}"></td>
+            <td><input type="number" name="cat5_pct" value="{{ config['categories']['cat5_pct'] }}" min="1" max="100"></td>
+            <td><input type="number" name="cat5_repeat" value="{{ config['categories']['cat5_repeat'] }}" min="1"></td>
           </tr>
         </table>
-      <input type="submit" value="Save">
+      <input type="submit" value="Create">
     </form>
-  </body>
-</html>
+    <a href="{{ url_for('playlist', playlist=config['misc']['playlist_name']) }}">Display Playlist Tracks</a>
+
+{% endblock %}

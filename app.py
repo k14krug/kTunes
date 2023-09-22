@@ -2,6 +2,7 @@ from flask import Flask, render_template, request
 from flask import jsonify
 import configparser
 import sqlite3
+import random
 from process_db import main
 import load_xml
 
@@ -45,55 +46,42 @@ if not config.has_section("misc"):
 else:
     print("config has misc section:",config["misc"])
     
-# Define the default configuration
+# List of background images
+background_images = [
+    'PiecesOfEight1.jpg',
+    'PiecesOfEight2.jpg',
+    'PiecesOfEight3.jpg',
+    'PiecesOfEight4.jpg',
+    'PiecesOfEight5.jpg',
+    ]
+# Select a random background image from the list
+selected_image = random.choice(background_images)
 
-# Create the configuration file if it doesn't exist
-#config.read(config_path)
+# Generate the URL for the selected image
+background_image_url = f"/static/images/{selected_image}"
 
-# Function to search for tracks by artist, song and category and paginated the result set
-def search_tracks(artist, song, category, page, per_page):
+
+# Function to query a table with filters and paginate the result set
+def query_table(**kwargs):
     db = get_db_connection()
-    
-    query = "SELECT Artist, song, category, Album, play_cnt, strftime('%Y-%m-%d', last_play_dt) AS last_play_dt, strftime('%Y-%m-%d', date_added) AS date_added FROM tracks WHERE 1=1"
-    if song:
-        query += " AND lower(song) LIKE '%" + song.lower() +  "%'"
-    if artist:
-        query += " AND lower(Artist) LIKE '%" + artist.lower() + "%'"
-    if category:
-        query += " AND category LIKE '%" + category.lower() + "%'"
-    count_query = f"SELECT count(*) FROM ({query})"
-    #print("count_query=:",count_query)
+    count_query = f"SELECT count(*) FROM ({kwargs['query']})"
+    #print("count_query=",count_query)
     cursor = db.execute(count_query)
     count = cursor.fetchone()[0]
-    offset = (page - 1) * per_page
-    limit = per_page
-    query += ' ORDER BY artist, song  LIMIT ?, ?'
-    cursor = db.execute(query,(offset, limit))
-    #query= 'SELECT * FROM tracks WHERE artist LIKE ? AND song LIKE ? AND category LIKE ? ORDER BY artist, song, category LIMIT ?, ?'
-    #cursor = db.execute(query, ('%{}%'.format(artist), '%{}%'.format(song), '%{}%'.format(category), offset, limit))
+    offset = (kwargs['page'] - 1) * kwargs['per_page']
+    limit = kwargs['per_page']
+    order_by_str = ', '.join(kwargs['order_by_cols'])
+    query = f"{kwargs['query']} ORDER BY {order_by_str}  LIMIT ?, ?"
+    cursor = db.execute(query, (offset, limit))
     tracks = cursor.fetchall()
-    #print("tracks=",tracks)
     cursor.close()
     return tracks, count
-
-'''
-@app.route('/get_max_rows')
-def get_max_rows():
-    row_height = 30  # Set the height of a single row in pixels
-    screen_height = request.args.get('screen_height', type=int)  # Get the user's screen height from the query parameters
-    if not screen_height:
-        return jsonify(error='screen_height parameter is missing')
-    else:
-        print("screen hight=",screen_height)
-    max_rows = int(screen_height / row_height)  # Calculate the maximum number of rows that can be displayed on the user's screen
-    return jsonify(max_rows=max_rows)
-'''
 
 @app.route("/config", methods=["GET", "POST"])
 def create_playlist():
     # Read the configuration file
     config.read(config_path)
-
+    
     if request.method == "POST":    # Update the configuration file with the new values
             # Read the category percentage values from the form
         form_data = request.form
@@ -118,7 +106,10 @@ def create_playlist():
 
         config["misc"]["playlist_name"] = request.form["playlist_name"]
         config["misc"]["playlist_lgth"] = request.form["playlist_lgth"]
-        config["misc"]["recently_added_switch"] = request.form["recently_added_switch"]
+        if "recently_added_switch" in request.form:
+          config["misc"]["recently_added_switch"] = request.form["recently_added_switch"]
+        else:
+          config["misc"]["recently_added_switch"] = 'no'
         config["misc"]["RA_weighting_factor"] = request.form["RA_weighting_factor"]
         config["misc"]["RA_play_cnt"] = request.form["RA_play_cnt"]
         config["misc"]["create_playlist"] = request.form["create_playlist"]
@@ -152,14 +143,15 @@ def create_playlist():
         total_songs, nbr_of_genre_songs, dup_playlist = main(config_parser_dict)
     # Read the configuration file
     config.read(config_path)
-
+    
+   
     # Render the template with the configuration data
     return render_template("config.html", config=config)
 
-# Route to display the paginated table of tracks
-@app.route('/tracks', methods=['GET', 'POST'])
-def tracks():
-    print("start /Tracks")
+# Route to display the paginated table of playlist
+@app.route('/playlist', methods=['GET', 'POST'])
+def playlist():
+    q_dict = {}
     screen_height = request.args.get('screen_height', type=int)
     if screen_height:
         print("got a screen_height of",screen_height)
@@ -178,19 +170,81 @@ def tracks():
     except ValueError:
         page = 1
     
-    search_artist = request.args.get('search_artist', '')
-    search_song = request.args.get('search_song', '')
-    search_category = request.args.get('search_category', '')
-    #if search_artist or search_song or search_category:
-    tracks, count = search_tracks(search_artist, search_song, search_category, page, per_page)
-    #else:
-    #    tracks, count = paginate(page, per_page)
+    q_dict['playlist'] = request.args.get('playlist', 'kTunes_03')
+    q_dict['artist'] = request.args.get('artist', '')
+    q_dict['song'] = request.args.get('song', '')
+    q_dict['category'] = request.args.get('category', '')
+    
+    query = "SELECT playlist_nm, track_cnt, artist, song, category, play_cnt, strftime('%Y-%m-%d', last_play_dt) AS last_play_dt FROM playlist_tracks WHERE lower(playlist_nm) like '" + q_dict['playlist'].lower() + "%'"
+    if q_dict['artist']:
+        query += " AND lower(Artist) LIKE '%" + q_dict['artist'].lower() + "%'"
+    if q_dict['song']:
+        query += " AND lower(song) LIKE '%" + q_dict['song'].lower() +  "%'"
+    if q_dict['category']:
+        query += " AND category LIKE '%" + q_dict['category'].lower() + "%'"
+    
+    q_dict['query'] = query
+    q_dict['order_by_cols'] = ['track_cnt']
+    q_dict['per_page'] = per_page
+    q_dict['page'] = page    
+    
+    tracks, count = query_table(**q_dict)
+    total_pages = (count + per_page - 1) // per_page     
+    start_page = max(1, page - 2)
+    end_page = min(total_pages, page + 2)
+    endpoint = 'playlist' 
+    template_name= 'playlist.html'
+    print('background image=',background_image_url) 
+    return render_template('table_templ.html', template_name=template_name, endpoint=endpoint, tracks=tracks, count=count, total_pages=total_pages, page=page, per_page=per_page, start_page=start_page, end_page=end_page, q_dict=q_dict)#, background_image_url=background_image_url)
+
+
+# Route to display the paginated table of tracks
+@app.route('/tracks', methods=['GET', 'POST'])
+def tracks():
+    q_dict = {}
+    screen_height = request.args.get('screen_height', type=int)
+    if screen_height:
+        print("got a screen_height of",screen_height)
+        max_rows_response = requests.get(f"{request.url_root}get_max_rows?screen_height={screen_height}")
+        if max_rows_response.status_code == 200:
+            max_rows = max_rows_response.json().get('max_rows')
+            per_page = max_rows
+        else:
+            per_page = 20
+    else:
+        print("didn't get a screen height!")
+        per_page = request.args.get('per_page', 20, type=int)
+    
+    try:
+        page = int(request.args.get('page', 1))
+    except ValueError:
+        page = 1
+    
+    q_dict['artist'] = request.args.get('artist', '')
+    q_dict['song'] = request.args.get('song', '')
+    q_dict['category'] = request.args.get('category', '')
+    
+    query = "SELECT Artist, song, category, Album, play_cnt, strftime('%Y-%m-%d', last_play_dt) AS last_play_dt, strftime('%Y-%m-%d', date_added) AS date_added FROM tracks WHERE 1=1"
+    if q_dict['artist']:
+        query += " AND lower(Artist) LIKE '%" + q_dict['artist'].lower() + "%'"
+    if q_dict['song']:
+        query += " AND lower(song) LIKE '%" + q_dict['song'].lower() +  "%'"
+    if q_dict['category']:
+        query += " AND category LIKE '%" + q_dict['category'].lower() + "%'"
+    
+    q_dict['query'] = query
+    q_dict['order_by_cols'] = ['artist', 'song']
+    q_dict['per_page'] = per_page
+    q_dict['page'] = page    
+    
+    tracks, count = query_table(**q_dict)
     total_pages = (count + per_page - 1) // per_page     
     start_page = max(1, page - 2)
     end_page = min(total_pages, page + 2)  
-    print("end_page=",end_page) 
-    print(render_template('tracks.html', tracks=tracks, count=count, total_pages=total_pages, page=page, per_page=per_page, start_page=start_page, end_page=end_page, search_artist=search_artist, search_song=search_song, search_category=search_category))        
-    return render_template('tracks.html', tracks=tracks, count=count, total_pages=total_pages, page=page, per_page=per_page, start_page=start_page, end_page=end_page, search_artist=search_artist, search_song=search_song, search_category=search_category)
+    template_name= 'tracks.html'
+    endpoint='tracks'
+    print('background image=',background_image_url) 
+    return render_template('table_templ.html', template_name=template_name, endpoint=endpoint, tracks=tracks, count=count, total_pages=total_pages, page=page, per_page=per_page, start_page=start_page, end_page=end_page, q_dict=q_dict, background_image_url=background_image_url)
 
 
 if __name__ == "__main__":
