@@ -1,0 +1,147 @@
+{% extends 'base.html' %}
+{% block content %}
+
+  <form method="POST" action="{{ url_for('ktunes.create_playlist') }}" id="cr-playlist-form" class="input-container">
+    <fieldset>
+      <br>
+      <div class="input-container input-field">
+        <label for="playlist_name" style="font-size: 15px;">Playlist Name:</label>
+        <input type="text" id="playlist_name" name="playlist_name" value="{{ config['misc']['playlist_name'] }}">
+      </div>
+      <div class="input-container input-field">
+        <label for="playlist_lgth" style="font-size: 15px;">Playlist Length (in hours):</label>
+        <input type="text" id="playlist_lgth" name="playlist_lgth" value="{{ config['misc']['playlist_lgth'] }}">
+      </div>
+        {% if total_songs > 0 %}
+        <label style="font-size: 14px;">{{ config['misc']['playlist_lgth'] }} hours will create a playlist of <strong>{{ total_songs }}</strong> songs</label>
+        {% else %}
+        <br><br>
+        {% endif %}
+        
+        
+      </fieldset>
+      <br>
+      <div class="d-flex align-items-center">
+        {% if error %}
+        <div class="alert alert-danger flex-grow-1">
+          {{ error }}
+        </div>
+        {% endif %}
+        {% if success %}
+        <div class="alert alert-success flex-grow-1">
+          <span>{{ success }}</span>
+          <a class="btn btn-primary ml-2" href="{{ url_for(endpoint, playlist=config['misc']['playlist_name']) }}">View Playlist</a>
+          <button class="btn btn-secondary ml-2">Button 2</button>
+        </div>
+        {% endif %}
+
+      </div>
+      <fieldset>
+        <legend>Categories</legend>
+        <table>
+          <thead>
+            <tr>
+                <th width="20">#</th>
+                <th width="110">Category</th>
+                <th width="110">Category<br>Wild Card</th>
+                <th width="100">Min:Max<br>Playcount</th>
+                <th width="100">Percent</th>
+                <th width="100">Artist<br>Repeat</th>
+                <th width="100">Playlist<br>Cat Cnt</th>
+                <th width="100">Library<br>Cat Cnt</th>
+                <th>Hours b4<br>Repeat</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for category in categories %}
+            {% set i = loop.index0 %}
+            <tr>
+                <td>{{ i }}</td>
+                {% if i == 0 %}
+                  <td>
+                    {{ category['name'] }}
+                    <input type="hidden" style="width: 100px;" name="name[]" value="{{ category['name'] }}">
+                  </td>
+                  <td>
+                    {{ category['wild_card'] }}
+                    <input type="hidden" style="width: 100px;" name="wild_card[]" value="{{ category['wild_card'] }}">
+                  </td>
+                {% else %}
+                  <td><input type="text" style="width: 100px;" name="name[]" value="{{ category['name'] }}"></td>
+                  <td><input type="text" style="width: 100px;" name="wild_card[]" value="{{ category['wild_card'] }}"></td>
+                {% endif %}
+                <td>
+                {% if i == 1 %}
+                  <input type="text" style="width: 70px;" name="min_max_playcnt[]" value="{{ category['min_max_playcnt'] }}">
+                {% else %}
+                   {{ category['min_max_playcnt'] }}
+                   <input type="hidden" style="width: 70px;" name="min_max_playcnt[]" value="{{ category['min_max_playcnt'] }}">
+                {% endif %}
+                </td><td><input type="number" style="width: 50px;" name="pct[]" value="{{ category['pct'] }}" {% if i == 0 %}min="0" max="100"{% else %}min="1" max="100"{% endif %}></td>
+                <td><input type="number" style="width: 50px;" name="repeat[]" value="{{ category['repeat'] }}" min="1"></td>
+                {# if track_counts_list[i]|int > 0 #}
+                  <td><span>{{ track_counts_list[i] }}</span></td>
+                  <td><span>{{ tot_songs[i] }}</span></td>
+                  <td><span>{{ repeat_interval[i] }}</span></td>
+                {# endif #}
+                
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      
+        <button type="submit" class="btn btn-primary" id="submitButton">Create Playlist</button>
+        <input type="hidden" id="submissionMethod" name="submissionMethod" value="">
+     </fieldset>
+    </form>
+    {% if config['misc']['debug_lvl']|int > 0 %}
+    <label style="font-size: 14px;">Debug level at {{ config['misc']['debug_lvl'] }}. Click 'Settings' to adjust</label>
+    {% endif %}
+        
+{% endblock %}
+{% block scripts %}
+
+
+  <script>
+    let enterPressed = false;
+    // Capture Enter key press on input fields
+    document.querySelectorAll('input[type="text"]').forEach(function (input) {
+        input.addEventListener("keydown", function (e) {
+            if (e.key === "Enter") {
+                enterPressed = true;
+            }
+        });
+    });
+  
+    // Capture submit button click
+    document.getElementById("submitButton").addEventListener("click", function () {
+        // Only set the hidden input value to "Button" if the button was clicked
+        if (!enterPressed) {
+            document.getElementById("submissionMethod").value = "Button";
+        }
+    });
+    
+    // kkrug 11/1/2023 I don't really want to have to code this here since its alreeady in scripts.js 
+    // but I can't get it to call the function from scripts.js So I'm leaving it here for now.
+//
+    //jQuery('table').DataTable({
+    //    "retrieve": true,
+    //    "colReorder": true,
+    //    "searching": false,
+    //    "lengthChange": false,
+    //    "info": false,
+    //    "ordering": false
+    //});
+    
+    $(document).ready(function() {
+    // Initialize DataTables on all tables
+    $('table').DataTable({
+        "paging": false,
+        "searching": false,
+        "info": false,
+        "ordering": false
+    });
+  });
+    
+  </script>
+{% endblock %}

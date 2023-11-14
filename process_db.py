@@ -3,6 +3,8 @@ from operator import truediv
 from re import X
 from telnetlib import theNULL
 import xml.etree.ElementTree as ET
+import logging
+import inspect
 import sqlite3
 import array
 import traceback
@@ -13,6 +15,14 @@ from tkinter import ttk
 from tkinter.messagebox import askyesno
 from operator import itemgetter 
 import numpy as np
+
+# Key variables in the tracks table:  
+#   cat_cnt - The current track count for a given category. All tracks in a category will have the same value for this field.
+#   artist_cat_cnt - The value that cat_cnt was when we last selected an artist in this category. 
+#                    All tracks for an artist in a category will have the same value for this field.
+#   cat_repeat_interval - A constant - The number of tracks that must be played between tracks from an artist in a category.
+#     As we search for songs to add we'll only select sounds where the artist_cat_cnt + cat_repeat_interval <= cat_cnt
+#     This will ensure that an artist is not played more frequently than the cat_repeat_interval.
 
 
 spc = {}
@@ -27,7 +37,7 @@ cnt=0
 cat=""
 create_recentadd_cat=False
 today_dt=datetime.now().strftime("%Y-%m-%d")
-date_added=datetime.now() - timedelta(days=180)
+#date_added=datetime.now() - timedelta(days=180)
 playlist_name="playlist"
 create_playlist="Yes"
 
@@ -44,428 +54,434 @@ cat_rpt=[str(15),str(20),str(30),str(50),str(50),str(50)]
 playlist_length=1000
 debug_level=0
 write_debug_to_file = True
-weighting_pct=str(20)
+logging.basicConfig(filename='debug.log', filemode='w', level=logging.DEBUG, format='%(message)s')
+starting_stack_depth = 0
 
-
-
-def debug_out(debug_val,debug_line,frmt="z"):
-    global cat
-    
+def debug_out(debug_val,debug_line):
+    # usage example : debug_out(1,[" category_counts:{}, fractions:{}",category_counts, fractions])
+    # debug_line is a list of values. "debug_line[0]"" is the message string and the remaining values 
+    # are the values to be formatted into the message string.
+    global starting_stack_depth
     if debug_val <= debug_level:
-      tupl = (debug_line)
-      strg = spc[debug_val]
-      x = strg + tupl[0]
-      tupl[0] = str(x)
-      tupl_nbr_of_vals= len(tupl)
-      if tupl_nbr_of_vals <= 11:
-        for i in range(tupl_nbr_of_vals, 12):
-          tupl=tupl + ["",]
-      else:
-         tupl[0] = "DEBUG ERROR" 
-         tupl[1] = "Too many debug items to display"
-         tupl[2] = debug_line
-      if frmt == "f":
-        ltrl=tupl[0]
-        strg=ltrl.format(str(tupl[1]),str(tupl[2]),str(tupl[3]),str(tupl[4]),str(tupl[5]),str(tupl[6]),str(tupl[7]),str(tupl[8]))
-      else:
-        frmt="{:<20s}{:<12s}{:<12s}{:<12s}{:<12s}{:<12s}{:<12s}{:<12s}{:<12s}"
-        strg=frmt.format(tupl[0],str(tupl[1]),str(tupl[2]),str(tupl[3]),str(tupl[4]),str(tupl[5]),str(tupl[6]),str(tupl[7]),str(tupl[8]))
-      if __name__ == "__main__":
-        print(strg)
-      else:
-        df.write(strg + "\n")
+      # Get the name of the calling function for level 1 debug messages
+      function_name = inspect.stack()[1][3].upper() if debug_val == 1 else ""
+      
+      # create an indentation string based on the current stack depth
+      current_stack_depth = len(inspect.stack())
+      depth = current_stack_depth - starting_stack_depth
+      indent = ' ' * (depth - 1) * 5      
+
+      # separate the message from the values to be formatted into the message
+      message, *values = debug_line
+      
+      spaces = ' ' * debug_val
+      message = spaces + message
+    
+      #formatted_debug_message = indent + function_name + " " + message.format(*map(str, values))
+      formatted_debug_message = indent + function_name + " " + message.format(*values)
+      
+      logging.debug(formatted_debug_message)
+      
+
+def category_distribution(c_pct, playlist_tot_songs):
+    """
+    This function calculates the distribution of songs across different categories.
+
+    Parameters:
+    c_pct (list): A list of percentages, each representing the percentage of songs for a category.
+    playlist_tot_songs (int): The total number of songs in the playlist.
+
+    Returns:
+    category_distribution_list (list): A list representing the distribution of songs. Each entry in the list is a string representing a category.
+    """
+    # Initialize an empty list to store the resulting distribution and a debug list
+    category_distribution_list = []
+    category_distribution_cnts = []
+    
+    # The following line calculates the number of songs for each category based on the percentage provided in 
+    # 'c_pct' and the total number of songs in the playlist. It creates a list 'category_counts' where 
+    # each item is the calculated number of songs for a category.
+    category_counts = [int((int(percentage) / 100) * playlist_tot_songs) for percentage in c_pct]
+
+    # Create a list of the initial fractions for each category 
+    fractions = [1 / count for count in category_counts]
+    debug_out(1,[" category_counts:{}, fractions:{}",category_counts, fractions])
+
+    # Loop to generate the category_distribution_list. 
+    while len(category_distribution_list) < playlist_tot_songs:
+        # Find the index of the category with the lowest fraction
+        min_fraction_index = np.argmin(fractions)
         
-def main(config): 
-  # Accepts a configuration dictionary as input.
-  # Sets up the database connection.
-  # Updates the database to ensure that all tracks are eligible for playlist selection.
-  # Iterates through the desired number of tracks for the playlist.
-  # For each track, it selects a track from a specific category, ensuring that the same artist or category is not repeated too quickly.
-  # Updates track and category counters to control repeat intervals.
-  # Records track information in the playlist.
-  global df, debug_level, create_playlist, repeat, last_song
-  last_song = " "
-  misc, category = itemgetter('misc','categories')(config)
-  debug_level=int(misc['debug_lvl'])
-  if __name__ != "__main__":
-    df = open('debug.log', 'w')
-  debug_out(1,["Main - Passed Dictionary:",config])
-  playlist_name = misc['playlist_name']
-  playlist_lgth = misc['playlist_lgth']
-  create_playlist = misc['create_playlist']
-  create_rcntadd_cat = misc['recently_added_switch']
-  recentadd_play_cnt = misc['ra_play_cnt']
-  weighting_pct = misc['ra_weighting_factor']
+        # Calculate the total count for the selected category
+        category_count = category_counts[min_fraction_index]
+                      
+        current_count = len([entry for entry in category_distribution_list if categories[min_fraction_index] in entry])
+          
+        # Update the fraction for the selected category
+        fractions[min_fraction_index] += 1 / category_count
+        
+        # Add the entry to the result list
+        category_distribution_list.append(f"{categories[min_fraction_index]}")
+        category_distribution_cnts.append(f" {current_count + 1} of {category_count}")
 
-  categories = ["RecentAdd"]
-  c_pct = [0]
-  repeat = [15]
-  
 
-  category_dict=category
-  
-  # Loop through the dictionary and insert values to arrays
-  for i, (key, value) in enumerate(category_dict.items()):
-    if key.startswith("cat") and not key.endswith("_pct") and not key.endswith("_repeat"):
-        categories.insert(i+1, value) 
-    elif key.endswith("_pct"):
-        c_pct.insert(i//3+1, value) 
-    elif key.endswith("_repeat"):
-        repeat.insert(i//3+1, value)
-  
-    playlist_tot_songs=int(int(playlist_lgth)/4) # avg song is 4 minutes
-  
-  # Connect to db
-  conn = sqlite3.connect('kTunes.sqlite')
-  sql_stmnt = conn.cursor()
-  
-  debug_out(1,["Resetting RecentAdd to Latest:"])
-  # If the RecentAdd switch had been set in an earlier run, need to switch back with this update
-  sql_stmnt.execute('''update tracks set category = 'Latest'
-                         where category = 'RecentAdd' COLLATE NOCASE''')
+    return(category_distribution_list)
 
-  if create_rcntadd_cat == 'on':
-    debug_out(1,["create_recently_added_cat with play_cnt:",recentadd_play_cnt])
+      
+def main(misc, categories, create_playlst): 
+    # Accepts a configuration dictionary as input.
+    # Sets up the database connection.
+    # Updates the database to ensure that all tracks are eligible for playlist selection.
+    # Iterates through the desired number of tracks for the playlist.
+    # For each track, it selects a track from a specific category, ensuring that the same artist or category is not repeated too quickly.
+    # Updates track and category counters to control repeat intervals.
+    # Records track information in the playlist.
+    global df, debug_level, create_playlist, repeat, last_song, starting_stack_depth
+    starting_stack_depth = len(inspect.stack()) 
+    last_song = " "
+    #misc, category = itemgetter('misc','categories')(config)
+    debug_level=int(misc['debug_lvl'])
+    debug_out(1,["{} Passed Dictionary:{},{}",datetime.now(),misc,categories])
+    playlist_name = misc['playlist_name']
+    playlist_lgth = misc['playlist_lgth']
+    create_playlist = create_playlst
+    
+    cat_list=categories
+    categories = []
+    c_pct = []
+    repeat = []
+    min_max_playcnt = []
+
+    for category in cat_list:
+        categories.append(category['name'])
+        min_max_playcnt.append(category['min_max_playcnt'])
+        c_pct.append(category['pct'])
+        repeat.append(category['repeat'])
+    
+    playlist_tot_songs=round(int(playlist_lgth) * 60 / 4) # avg song is 4 minutes
+    
+    # The first category can contains a min:max play count value. If there it will do two things:
+    # 1 - The min value will be used to create a new category. It will be carved out of the 
+    #     first category. Tracks with less plays than 'min' will be moved to the new category.
+    # 2 - The max value will be used to determine which tracks from the first category should be 
+    #     moved to the second category. Tracks with more plays than 'max' will be moved to the 'In Rot' category.
+    
+    recentadd_play_cnt, in_rot_play_cnt = min_max_playcnt[categories.index('Latest')].split(':')
+    debug_out(2,["recentadd_play_cnt:{}, in_rot_play_cnt:{}",recentadd_play_cnt,in_rot_play_cnt])
+
+    # Connect to db
+    conn = sqlite3.connect('kTunes.sqlite')
+    sql_stmnt = conn.cursor()
+    
+    debug_out(2,["Resetting all categories to their original values"])
+    # Previous playlist may have changed the category of some tracks. We need to reset them to their original values.
+    sql_stmnt.execute('''update tracks set category = 'Latest'
+              where genre like 'latest%' COLLATE NOCASE
+            ''')
+    sql_stmnt.execute('''update tracks set category = 'In Rot'
+              where genre like 'In rotation%' COLLATE NOCASE
+            ''')
+    sql_stmnt.execute('''update tracks set category = 'Other'
+                  where genre like 'Other than New%' COLLATE NOCASE
+                ''')
+    sql_stmnt.execute('''update tracks set category = 'Old'
+                  where genre like 'Old%' COLLATE NOCASE
+                ''')
+    sql_stmnt.execute('''update tracks set category = 'Album'
+                  where genre like 'Album%' COLLATE NOCASE
+                ''')
+
+    debug_out(2,["create recently_added_cat with play_cnt: {}",recentadd_play_cnt])
     sql_stmnt.execute('''update tracks set category = 'RecentAdd'
-                         where category = 'Latest' COLLATE NOCASE
-                           and play_cnt <= ?''',(recentadd_play_cnt,))
+                        where category = 'Latest' COLLATE NOCASE
+                          and play_cnt <= ?''',(recentadd_play_cnt,))
+    recentadd_count = sql_stmnt.rowcount  # Get the number of rows updated
+    debug_out(2,["Number of tracks updated to RecentAdd: {}",recentadd_count])
+    debug_out(2,["Update Latest tracks to InRot tracks if play_cnt>: {}",in_rot_play_cnt])
+    sql_stmnt.execute('''update tracks set category = 'In Rot'
+                        where category = 'Latest' COLLATE NOCASE
+                          and play_cnt > ?''',(in_rot_play_cnt,))
+    inrot_count = sql_stmnt.rowcount  # Get the number of rows updated
+    debug_out(2,["Number of tracks updated to InRot: {}",inrot_count])
   
-  for x in range(len(categories)):
-    sql_stmnt.execute('''select count(*) from tracks
-                           where category=?''',(categories[x],))
-    row=sql_stmnt.fetchone()
-    tot_c_trk_cnt[x]=row[0]
-  if create_rcntadd_cat == 'on':
-    print("c_pct[] before",c_pct)
-    # Above we changed some of the latest tracks to recent add tracks. Now were going to determine
-    # what percentage of each of those categories to use. We'll first come up with their percentages as
-    # part of the original latest pct. For example, if the original latest pct was 50 and we now
-    # have 10 recentadd tracks and 20 latest tracks then the recentadd percentages would be 50 * 10 / (10 +20)
-    # Then well add a 20% preference to the recentadd % so these will play more freaquently 
-    #          recent add preferecne * (orig latest pct * recentadd track cnt / (recentadd track cnt = latest_track cnt))
-    #orig_recentadd_pct = float(c_pct[1]) * tot_c_trk_cnt[0] / (tot_c_trk_cnt[0] + tot_c_trk_cnt[1])
-    weighting_pct=float("1." + weighting_pct)
-    print(weighting_pct, float(c_pct[1]), tot_c_trk_cnt[0] ,  tot_c_trk_cnt[1])
-    c_pct[0] = round(weighting_pct * float(c_pct[1]) * tot_c_trk_cnt[0] / (tot_c_trk_cnt[0] + tot_c_trk_cnt[1]))
-    c_pct[1] = round(float(c_pct[1]) - float(c_pct[0]))
-    print("c_pct[] after",c_pct)
-  else:
-    c_pct[0] = 0
-
-  nbr_of_cat_songs= [round(playlist_tot_songs*float(c_pct[0])/100),
-                     round(playlist_tot_songs*float(c_pct[1])/100),
-                     round(playlist_tot_songs*float(c_pct[2])/100),
-                     round(playlist_tot_songs*float(c_pct[3])/100),
-                     round(playlist_tot_songs*float(c_pct[4])/100),
-                     round(playlist_tot_songs*float(c_pct[5])/100)]
-  
-  # The cat_inv_pct is the percentage of the inverse of the number of songs a cat should have in a playlist.
-  # For example: Say We only want are playlist to contains 125 song of the first cat. It's cat_inv_pct is = 100 * 1/125 = .8
-  # This is used to compute the right spacing of categories in the playlist based on number of tracks per cat.
-  # We set tot_cat_inv_pct to the values we just calculated. Later, when we're building the playlist, 
-  # we'll use this to sum of the cat_inv_pct for each cat as we build out the playlist.
-  # And by the time we get end of the playlist the sum for each cat should all be the same and they should match the total playlist count
-  if create_rcntadd_cat == 'on':
-    print(nbr_of_cat_songs[0],nbr_of_cat_songs[1], nbr_of_cat_songs[2], nbr_of_cat_songs[3],nbr_of_cat_songs[4],nbr_of_cat_songs[5])
-    cat_inv_pct = [100/nbr_of_cat_songs[0],100/nbr_of_cat_songs[1], 100/nbr_of_cat_songs[2], 100/nbr_of_cat_songs[3],100/nbr_of_cat_songs[4],100/nbr_of_cat_songs[5]]
-  else:
-    cat_inv_pct = [0, 100/nbr_of_cat_songs[1],100/nbr_of_cat_songs[2], 100/nbr_of_cat_songs[3],100/nbr_of_cat_songs[4],100/nbr_of_cat_songs[5]]
-  tot_cat_inv_pct = [cat_inv_pct[0],cat_inv_pct[1],cat_inv_pct[2],cat_inv_pct[3],cat_inv_pct[4],cat_inv_pct[5]]
-
-  #playlist_name=playlist_nm
- 
-  debug_out(0,["INFO","Plylst Lngth", playlist_lgth, "minutes."])
-  debug_out(0,["INFO","Total Songs", playlist_tot_songs])
-  debug_out(0,["INFO","Create recentadd", create_rcntadd_cat])
-  debug_out(0,["INFO","Recentadd Date", recentadd_play_cnt])
-  debug_out(0,["INFO","Create Playlist", create_playlist])
-  debug_out(0,["INFO","Debug Level", debug_level])
-  debug_out(0,["INFO", "# # # # # # # # # # # # # # # # # # # # # ","x"])
-  debug_out(0,["INFO", "Genre","Pct",'PlylstSongs',"Tot Songs", "cat_inv_pct"])
-  debug_out(0,["INFO", "----------","----",'-----------',"---------"])
-  for x in range(len(categories)):
-    debug_out(0,["INFO",categories[x],float(c_pct[x]),nbr_of_cat_songs[x],tot_c_trk_cnt[x],float(cat_inv_pct[x])])
-
-  if create_playlist == 'off':
-    conn.commit()
-    conn.close()
-    df.close() # Debug file
-    return(playlist_tot_songs,nbr_of_cat_songs,False)
-  else:
-    # check if playlist already exists
-    sql_stmnt.execute('''select "x" from playlist where playlist_nm = ?;''',(playlist_name,))
-    if sql_stmnt.fetchone():
-      # create the root window
-      root = tk.Tk()
-      #root.title('Tkinter Yes/No Dialog')
-      #root.geometry('300x150')
-      root.withdraw()  # hide main window
-      answer = askyesno(title=None, message="This playlist already exist do you want to overwrite it?")
-      if answer:
-        root.destroy()
-      else:
-        root.destroy()
-        return(playlist_tot_songs,nbr_of_cat_songs,True)
-
-    tot_c_trk_cnt[x]=row[0]
     
     for x in range(len(categories)):
-      insert_stmt='''insert or replace into playlist
-                     (playlist_dt,playlist_nm,length,nbr_of_songs,recentadd_play_cnt,debug_level,category,pct,nbr_of_cat_playlist_songs,nbr_of_cat_songs)
-                     values (?,?,?,?,?,?,?,?,?,?);'''
-      sql_stmnt.execute(insert_stmt,(today_dt,playlist_name,playlist_lgth, playlist_tot_songs, recentadd_play_cnt, debug_level, categories[x], float(c_pct[x]),nbr_of_cat_songs[x],tot_c_trk_cnt[x],))
-  
-  def get_cursor_rec(cat):
-  
-    # This function retrieves a cursor of tracks for a given category.
-    
-    # Input:
-    # - cat: The category for which we want to retrieve the cursor.
-    
-    # Global Variables:
-    # - artist, length, play_cnt, song, date_song_added, location, played_sw
-    # - cat_cnt, artist_cat_cnt, last_play_dt, csr_row_cnt
-    
-    # Function Steps:
-    
-    # 1. Construct a SQL query to retrieve tracks of the given category that haven't been played yet.
-    #    The query also orders the results by the last time each track was played.
-    
-    # 2. Execute the SQL query using a cursor object.
-    
-    # 3. Fetch the first row of results from the cursor.
-    
-    # 4. If there are no results returned by the query (i.e., all tracks in this category have already been played),
-    #    then reset all records in this category to mark them as unplayed so they can be played again.
-    
-    # 5. Return the fetched row of track information or None if there are no unplayed tracks in this category.
-    
-    # Example Usage:
-    # cat_cursor = get_cursor_rec("RecentAdd")
-    # track_info = cat_cursor.fetchone()
-    # if track_info is not None:
-    #     # Process the track information
-    # else:
-    #     # All tracks in this category have been played, take appropriate action.
+      sql_stmnt.execute('''select count(*) from tracks
+                            where category=?''',(categories[x],))
+      row=sql_stmnt.fetchone()
+      tot_c_trk_cnt[x]=row[0]
+ 
+    nbr_of_cat_songs = [round(playlist_tot_songs * float(c_pct[i]) / 100) for i in range(len(c_pct)) if float(c_pct[i]) > 0]
+    """
+    The variable 'cat_inv_pct' represents the inverse percentage of the number of songs a category should have
+    in a playlist. For instance, if a playlist should contain 125 songs from the first category, 
+    the 'cat_inv_pct' for this category would be calculated as (1/125)*100, which equals 0.8. 
+    This value helps in determining the appropriate distribution of songs from different categories 
+    in the playlist.
 
-    global artist, length, play_cnt, song, date_song_added, location, played_sw, cat_cnt, artist_cat_cnt, last_play_dt, csr_row_cnt
-
-    debug_out(4,["opening cat_track cursor. Cat:{}, cnt:{}, cat_trk_cnt:{}",cat, cnt,c_trk_cnter[cat_idx]],"f")
-    where_stmnt = '''
-        where (   category = '{}'
-               or (   '{}' = 'RecentAdd'
-                   and category = 'Latest'
-                   and recent_add_subcat is TRUE)
-                   )
-           and (   artist_cat_cnt + {} <= cat_cnt 
-                )
-           and played_sw = FALSE
-        order by last_play_dt;'''.format(cat, cat, cat_repeat_interval,)
-    sql = '''select song, artist, last_play_dt, played_sw, cat_cnt, artist_cat_cnt, rating, length, play_cnt, date_added, location
-             from tracks ''' + where_stmnt
+    The variable 'tot_cat_inv_pct' is initially set to the calculated 'cat_inv_pct' values. 
+    As the playlist is being constructed, 'tot_cat_inv_pct' is used to keep a running total of the 
+    'cat_inv_pct' for each category. By the time the playlist is fully built, the sum of 'cat_inv_pct' 
+    for each category should be equal and match the total count of the playlist. This ensures a balanced 
+    and proportional distribution of songs from each category in the playlist.
+    """
+    cat_inv_pct = [100/nbr_of_cat_songs[i] for i in range(len(nbr_of_cat_songs))]
     
-    sql2 = '''select count(*) cursor_cnt
-                            from tracks ''' + where_stmnt
+    debug_out(0,["INFO - Plylst Name:     {}", playlist_name])
+    debug_out(0,["INFO - Plylst Lngth:    {} hours", playlist_lgth])
+    debug_out(0,["INFO - Total Songs:     {}", playlist_tot_songs])
+    debug_out(0,["INFO - Recentadd Date:  {}", recentadd_play_cnt])
+    debug_out(0,["INFO - Create Playlist: {}", create_playlist])
+    debug_out(0,["INFO - Debug Level:     {}", debug_level])
+    debug_out(0,["INFO - # # # # # # # # # # # # # # # # # # # # # ","x"])
+    debug_out(0,["INFO - Genre      Pct  PlylstSongs Tot Songs cat_inv_pct"])
+    debug_out(0,["INFO   ---------- ---- ----------- --------- -----------"])
+    for x in range(len(categories)):
+      debug_out(0,["INFO   {:10} {:3.0f} {:12} {:9} {:3.1f}",categories[x],float(c_pct[x]),nbr_of_cat_songs[x],tot_c_trk_cnt[x],float(cat_inv_pct[x])])
 
-    cat_cur.execute(sql)
-     
-    # If a cat doesn't have enough songs to match nbr_of_<cat>_songs then when we get to the end we need to reset that
-    # cat and start from its beginning.
-    try:
-      song,artist, last_play_dt, played_sw, cat_cnt, artist_cat_cnt, rating, length, play_cnt, date_song_added, location=cat_cur.fetchone()
-    except TypeError:
-      # There were no records returned from the cursor so we need to resetting the played_sw so all recs will be eligible again.
-      debug_out(0,["INFO - Processed all {} tracks. Need to start over. Cnt:{}. g_grk_cnt", cat, cnt, c_trk_cnter[cat_idx]],"f")
-      if debug_level>0:
-        f3.write("Reseting {} cursor after {} {} tracks".format(cat,c_trk_cnter[cat_idx],cat) + "\n")
-
-      sql_stmnt.execute('update tracks set played_sw = FALSE  where category = ?;',(cat,))
-      conn.commit
-      # Reopening cursor after reset
-      cat_cur.execute(sql)
-      try:
-        song,artist, last_play_dt, played_sw, cat_cnt, artist_cat_cnt, rating, length, play_cnt, date_song_added, location=cat_cur.fetchone()
-      except:
-        debug_out(5,["Cursor did not return any rows after reset. SQL statement was", sql])
-   
-    cat_cur.execute(sql2)
-    csr_row_cnt=cat_cur.fetchone()
-    if str(csr_row_cnt) == '(509,)':
-      debug_out(5,["Cursor returned magic with where_stmnt {}", where_stmnt],"f")
-    debug_out(5,["Cursor returned {} rows. ", str(csr_row_cnt),where_stmnt],"f")
-
-    #debug_out(5,["Cursor returned {} rows. artist:{}, song:{}, played_sw:{}, artist_cat_cnt:{}, cat_cnt:{}, category:{}", str(csr_row_cnt),artist,song,played_sw,artist_cat_cnt,cat_cnt, cat],"f")
-
-  def process_cat_track(cnt):
-    # The process_cat_track function is used to get a single track for a given category. 
-    # The function first calls the get_cursor_rec function to retrieve a cursor of all the tracks for the given category. 
-    # It then writes the current track to the playlist file and updates the database to mark this track as played.
-    # The function also updates the cat_cnt and artist_cat_cnt fields in the database for this track’s category and artist. 
-    # These fields are used to ensure that each category and artist is played fairly and that no two tracks from the same
-    # artist and category are played more frequently than the repeat count.
-    global artist_cat_cnt, cat_cnt, last_song
-    return_val=False
-    debug_out(2,["process_cat_track"])
-
-    get_cursor_rec(cat)
-         
-    debug_out(3,["process_cat_track - writing to playlist. Genre:{}, cat_cnt:{}, cat_repeat_interval:{}, cat_idx:{}",cat,c_trk_cnter[cat_idx],cat_repeat_interval,cat_idx],"f")
-    line1='#EXTINF: ' + str(length) + ',' + artist + " - " + song 
-    f2.write(line1 + "\n")
-    f2.write(location + "\n")
-    #Don't wannan here this song again until we get through all other songs in the category so set played_sw to TRUE
-    sql_stmnt.execute('''update tracks
-                            set played_sw = TRUE
-                              where artist = ?
-                                and song = ?;''',(artist,song,))
-    
-    # Were setting the artist_cat_cnt for all recs of this artist/category to the current value of the count 
-    # total # of recs from this category. This way we wont include any recs from this artist in this cat
-    # until category count is <repeat cnt> higher than the artist_cat_cnt
-    # till its their time
-    #cat_cnt += 1
-    if cat in ['Latest', 'RecentAdd']:
-      cat_val= '("Latest", "RecentAdd")'
+    if not create_playlist:
+      conn.commit()
+      conn.close()
+      return(playlist_tot_songs,nbr_of_cat_songs,tot_c_trk_cnt, False)
     else:
-      cat_val= '("' + cat + '")'
-    stmnt='''update tracks set cat_cnt = cat_cnt + 1 where category in ''' + cat_val
-    sql_stmnt.execute(stmnt)
+      # check if playlist already exists
+      sql_stmnt.execute('''select "x" from playlist where playlist_nm = ?;''',(playlist_name,))
+      if sql_stmnt.fetchone():
+        # create the root TKinter window for display of the yes/no dialog
+        root = tk.Tk()
+        root.withdraw()  # hide main window
+        answer = askyesno(title=None, message="This playlist already exist do you want to overwrite it?")
+        if answer:
+          root.destroy()
+          delete_stmt = '''delete from playlist where playlist_nm = ?;'''
+          sql_stmnt.execute(delete_stmt,(playlist_name,))
+          delete_stmt = '''delete from playlist_tracks where playlist_nm = ?;'''
+          sql_stmnt.execute(delete_stmt,(playlist_name,))
+          conn.commit
+        else:
+          root.destroy()
+          return(playlist_tot_songs,nbr_of_cat_songs,True)
 
-    # 6/22/23 - I had a bug where I was running out of album tracks in a playlist. It appears it was because in the following statement I'd
-    # commented out the 'and category in''' + cat_val' part. This meant everytime an artist was selected it said could not play another album
-    # track from that artist till we played at least 50 other album tracks. But we never got to 50 album tracks. They had all been marked to not play
-    # till 50 tracks by the 44th album track. So I'm uncommenting the 'catatory' check. I don't recall why I initially commented out.
-    # I should have documented it. I'm sure there was a reason. If I come across that reason again and want to comment out this again
-    # I could try resetting artist_cat_cnt if/when I run out of tracks. This wouldn't be great because it would cause duplicates of some
-    # album tracks in a singel playlist but if you can't come up woth something else...
-    stmnt='''update tracks set artist_cat_cnt = cat_cnt where artist = ? and category in '''+ cat_val
-    sql_stmnt.execute(stmnt,(artist,))
+      for x in range(len(categories)):
+        insert_stmt='''insert or replace into playlist
+                      (playlist_dt,playlist_nm,length,nbr_of_songs,recentadd_play_cnt,debug_level,category,pct,nbr_of_cat_playlist_songs,nbr_of_cat_songs)
+                      values (?,?,?,?,?,?,?,?,?,?);'''
+        sql_stmnt.execute(insert_stmt,(today_dt,playlist_name,playlist_lgth, playlist_tot_songs, recentadd_play_cnt, debug_level, categories[x], float(c_pct[x]),nbr_of_cat_songs[x],tot_c_trk_cnt[x],))
+      conn.commit
     
-    stmnt='''insert or replace into playlist_tracks
-                    (playlist_dt,playlist_nm,track_cnt,artist,song,category,length,play_cnt,last_play_dt,cat_cnt,artist_cat_cnt)
-                    values (?,?,?,?,?,?,?,?,?,?,?);''' 
-    sql_stmnt.execute(stmnt,(today_dt,playlist_name,cnt,artist,song,cat,length/1000/60,play_cnt, last_play_dt,cat_cnt,artist_cat_cnt,))
+    def fetch_song_from_tbl(cat):
     
-    if debug_level>9:
-      print("artist",artist, " song",song,  "length",length, "cat_repeat_interval", cat_repeat_interval,"cnt",cnt,"cat_cnt",cat_cnt)
-      sng_lngth = str(round(length/1000/60,2))
-      frmt="{:<20s}{:<20s} L-{:5s} C:{:11s} R:{:<3d} cnt:{:<3d} c-cnt:{:<3d} ac-cnt:{:<3d} csr-cnt:{:<4s} lp-dt:{:<13s} {:<9s} {:<10s}"
-      f3.write(frmt.format(artist[0:20], song[0:20], str(round(length/1000/60,2)), cat, cat_repeat_interval,cnt, cat_cnt,artist_cat_cnt,str(csr_row_cnt[0]),str(last_play_dt)[0:12], str(play_cnt),date_song_added) + "\n")
-                            
-    debug_out(2,[" End - return_val="+str(return_val)])
-    conn.commit
-    return(return_val)
-  
-  def song_distribution(c_pct, playlist_tot_songs):
-      print("Inside song_distribution c_pct=",c_pct, "Tog songs=",playlist_tot_songs)
-      global song_distribution_list
+      # This function will determine the next eligible track for a given category.
     
-      # Calculate the number of items for each category based on percentages
-      category_counts = [int((int(percentage) / 100) * playlist_tot_songs) for percentage in c_pct]
-
-      # Calculate initial fractions for each category
-#      fractions = [1 / count for count in category_counts]
-      fractions = [1 / count if count != 0 else 0 for count in category_counts]
-
-
-      # Initialize an empty list to store the resulting distribution and a debug list
-      song_distribution_list = []
-      category_distribution_cnts = []
-
-      # Create a loop to distribute items evenly
-      while len(song_distribution_list) < playlist_tot_songs:
-          # Find the index of the category with the lowest fraction
-          min_fraction_index = np.argmin(fractions)
-          
-          if create_rcntadd_cat != 'on' and min_fraction_index == 0:
-             # If excluding the first category, move to the next category
-             min_fraction_index = np.argmin(fractions[1:]) + 1
-             # If all categories have been exhausted, exit the loop
-             if min_fraction_index is None:
-                break
-             print("cat 0, ",len(song_distribution_list))
-                        
-          current_count = len([entry for entry in song_distribution_list if categories[min_fraction_index] in entry])
-          
-          # Calculate the total count for the selected category
-          category_count = category_counts[min_fraction_index]
-          
-          # Update the fraction for the selected category
-          fractions[min_fraction_index] += 1 / category_count
-          
-          # Add the entry to the result list
-          print(f"{categories[min_fraction_index]} {current_count + 1} of {category_count}")
-          song_distribution_list.append(f"{categories[min_fraction_index]}")
-          category_distribution_cnts.append(f" {current_count + 1} of {category_count}")
-
-      ## Print the final distribution
-      for x in range(len(song_distribution_list)):
-#      for entry in song_distribution_list:
-          print(song_distribution_list[x], category_distribution_cnts[x], x)
+      global artist, length, play_cnt, song, location, played_sw, cat_cnt, artist_cat_cnt, last_play_dt, csr_row_cnt
       
-      return(song_distribution_list)
+      debug_out(1,["Cat:{}, cnt:{}, cat_trk_cnt:{}",cat, cnt,c_trk_cnter[cat_idx]])
+      
+      sub_sql='''select distinct a.artist
+                  from tracks a,
+                        (select distinct artist from tracks where category = '{}') b
+                  where a.artist_cat_cnt + {} > a.cat_cnt 
+                    and a.category in ({})
+                    and a.artist_cat_cnt != 0
+                    and a.artist=b.artist '''.format(cat, cat_repeat_interval,','.join(['?' for _ in categories]))
+      cat_cur.execute(sub_sql, categories)
+      result_set = cat_cur.fetchall()
+      # Extract the values into a Python list so we can use the join function to create a real list. 
+      values_list = [row[0] for row in result_set]
+      placeholders = ', '.join('?' for _ in values_list)
 
-  # MAIN PROCESSING STARTS HERE
+      # Find rows that match this category and where the artist hasn't been played too recently
+      where_stmnt = '''
+          where (   category = '{}'
+                or (   '{}' = 'RecentAdd'
+                    and category = 'Latest'
+                    and recent_add_subcat is TRUE)
+                    )
+            and (   artist_cat_cnt + {} <= cat_cnt 
+                  )
+            and artist not in ({})
+            and played_sw = FALSE
+          order by last_play_dt;'''.format(cat, cat, cat_repeat_interval,placeholders)
+      
+      sql = '''select song, artist, last_play_dt, played_sw, cat_cnt, artist_cat_cnt, rating, length, play_cnt, location
+              from tracks
+                ''' + where_stmnt
+      
+      sql2 = '''select count(*) cursor_cnt
+                              from tracks ''' + where_stmnt
 
-  cat_cur = conn.cursor()
-  f2 = open(playlist_name+".m3u", "w")
-  f2.write("#EXTM3U" + "\n")
-  if debug_level>0:
-    f3 = open("playlist_debug.log", "w")
+      cat_cur.execute(sql,values_list)
+      
+      # If a category doesn't have enough songs to match nbr_of_<cat>_songs then when we get to the end we need to 
+      # reset that cat and start from its beginning.
+      result = cat_cur.fetchone()
+      if result is not None:
+        song,artist, last_play_dt, played_sw, cat_cnt, artist_cat_cnt, rating, length, play_cnt, location = result
+      else: 
+        # There were no records returned from the cursor so we need to resetting the played_sw so all recs will be eligible again.
+        debug_out(0,["INFO - Processed all {} tracks. Need to start over. Cnt:{}. c_trk_cnt:{}", cat, cnt, c_trk_cnter[cat_idx]])
+        if debug_level>0:
+          f3.write("Reseting {} cursor after {} {} tracks".format(cat,c_trk_cnter[cat_idx],cat) + "\n")
+
+        sql_stmnt.execute('update tracks set played_sw = FALSE  where category = ?;',(cat,))
+        conn.commit
+        # Reopening cursor after reset
+        cat_cur.execute(sql,values_list)
+        result = cat_cur.fetchone()
+        if result is not None:
+          song,artist, last_play_dt, played_sw, cat_cnt, artist_cat_cnt, rating, length, play_cnt, location = result
+        else: 
+          debug_out(1,["Cursor did not return any rows after reset. SQL statement was {}", sql])
+      
+      cat_cur.execute(sql2,values_list)
+      csr_row_cnt=cat_cur.fetchone()
+      
+      debug_out(3,["Cursor returned artist:{}, played_sw:{}, artist_cat_cnt:{}, cat_cnt:{}, category:{}, cnt:{}, song:{}, rows:{}",artist, played_sw, artist_cat_cnt, cat_cnt, cat, cnt, song, str(csr_row_cnt)])
+      f3.write(" Selected:{}, Song:{}, cat:{}, artist_cat_cnt, cat_cnt".format(artist, song, cat, artist_cat_cnt, cat_cnt) + "\n")
+
+    def get_track_for_category(cat, cnt):
+      # The get_track_for_category function is used to get a single track for a given category. 
+      # The function first calls the fetch_song_from_tbl function to retrieve a cursor of all the tracks for the given category. 
+      # It then writes the current track to the playlist file and updates the database to mark this track as played.
+      # The function also updates the cat_cnt and artist_cat_cnt fields in the database for this track’s category and artist. 
+      # These fields are used to ensure that each category and artist is played fairly and that no two tracks from the same
+      # artist and category are played more frequently than the repeat count.
+      # If an artist is in multiple categories 
+      global artist_cat_cnt, cat_cnt, last_song
+      return_val='Continue'
+      debug_out(1,["Category:{}, cnt:{}",cat, cnt])
+      
+      fetch_song_from_tbl(cat)
+          
+      debug_out(2,["get_track_for_category - writing to playlist. Genre:{}, cat_cnt:{}, cat_repeat_interval:{}, cat_idx:{}",cat,c_trk_cnter[cat_idx],cat_repeat_interval,cat_idx])
+      line1='#EXTINF: ' + str(length) + ',' + artist + " - " + song 
+      f2.write(line1 + "\n")
+      f2.write(location + "\n")
+      #Don't wannan here this song again until we get through all other songs in the category so set played_sw to TRUE
+      sql_stmnt.execute('''update tracks
+                              set played_sw = TRUE
+                                where artist = ?
+                                  and song = ?;''',(artist,song,))
+      
+      if cat in ['Latest', 'RecentAdd']:
+        cat_val= "('Latest', 'RecentAdd')"
+      else:
+        cat_val= "('" + cat + "')"
+      
+      stmnt='''update tracks set cat_cnt = cat_cnt + 1 where category in ''' + cat_val
+      sql_stmnt.execute(stmnt)
+      rows_updated = sql_stmnt.rowcount 
+
+      stmnt='''select cat_cnt, artist_cat_cnt from tracks where category in ''' + cat_val
+      sql_stmnt.execute(stmnt)
+      f3.write(" Select statement =:{}".format(stmnt) + "\n")
+      row=sql_stmnt.fetchone()
+      if row is not None:
+        cat_cnt, artist_cat_cnt = row
+      else:
+        row=['blank',0]
+        
+      f3.write(" After update of cat_cnt. Updated {} rows. Row = {}".format(rows_updated, row) + "\n")
+
+
+      # 6/22/23 - I had a bug where I was running out of 'album' tracks in a playlist. It appears it was because in the following statement I'd
+      # commented out the 'and category in cat_val' part. This meant everytime an artist was selected it said could not play another 'album'
+      # track from that artist till we played at least 50 other album tracks. But we never got to 50 album tracks. They had all been marked to not play
+      # till 50 tracks by the 44th album track. So I'm uncommenting the 'catatory' check. I originally commented it out in January of 23 to fix the issue 
+      # where I was getting artist who where in multiple categories to be played too frequently (like Hippo Campus)
+
+      # I'm using ? instead of {} and format because some of the artist names have quotes in them and using {}.format does not seem to handle this
+      stmnt = "update tracks set artist_cat_cnt = cat_cnt where artist = ? and category in {}".format(cat_val)
+      f3.write(" update statement =:{}, params = {} /n".format(stmnt, artist))
+      sql_stmnt.execute(stmnt, (artist,))
+      rows_updated = sql_stmnt.rowcount 
+
+      stmnt='select cat_cnt, artist_cat_cnt from tracks where artist = ? and category in ' + cat_val
+      sql_stmnt.execute(stmnt,(artist,))
+      row=sql_stmnt.fetchone()
+      if row is None:
+        row=['blank',0]
+      disp_cat_cnt, disp_artist_cat_cnt = row
+      f3.write(" After update of artist_cat_cnt. Rows updated:{}, artist_cat_cnt:{}, cat_cnt:{}".format(rows_updated,disp_artist_cat_cnt,disp_cat_cnt) + "\n")
+
+      stmnt='''insert or replace into playlist_tracks
+                      (playlist_dt,playlist_nm,track_cnt,artist,song,category,length,play_cnt,last_play_dt,cat_cnt,artist_cat_cnt)
+                      values (?,?,?,?,?,?,?,?,?,?,?);''' 
+      sql_stmnt.execute(stmnt,(today_dt,playlist_name,cnt,artist,song,cat,length/1000/60,play_cnt, last_play_dt,cat_cnt,artist_cat_cnt,))
+      
+      if debug_level>9:
+        print("artist",artist, " song",song,  "length",length, "cat_repeat_interval", cat_repeat_interval,"cnt",cnt,"cat_cnt",cat_cnt)
+        sng_lngth = str(round(length/1000/60,2))
+        frmt="{:<20s}{:<20s} L-{:5s} C:{:11s} R:{:<3d} cnt:{:<3d} c-cnt:{:<3d} ac-cnt:{:<3d} csr-cnt:{:<4s} lp-dt:{:<13s} {:<9s}"
+        f3.write(frmt.format(artist[0:20], song[0:20], str(round(length/1000/60,2)), cat, cat_repeat_interval,cnt, cat_cnt,artist_cat_cnt,str(csr_row_cnt[0]),str(last_play_dt)[0:12], str(play_cnt)) + "\n")
+                              
+      debug_out(2,[" End - return_val={}",str(return_val)])
+      conn.commit
+      
+      if cat == 'zOther' and artist == 'Dave Matthews Band':
+        return_val = 'Exit'
+
+      return(return_val)
     
-  # Need to set last_play_dt to 0 if its a brand new track
-  sql_stmnt.execute('update tracks set last_play_dt = 0 where last_play_dt = "Unknown";')
 
-  song_distribution(c_pct, playlist_tot_songs)
-  print("after song_distribution")
+    # MAIN PROCESSING STARTS HERE
 
-  # Make sure all tracks are eligble
-  for x in range(len(categories)):
-    sql_stmnt.execute('''update tracks set played_sw=FALSE, artist_cat_cnt = 0, cat_cnt = ?
-                         where category = ?;''',(cat_rpt[x],categories[x]))
-  
-  # Everythings set to go. Lets start creating the playlist
-  # The logic in this for loop will seperate the tracks by category to insure they are spaced evenly based on the percentage the user said they want
-  # for each category.
-  # tot_cat_inv_pct was initially calculated by divding 100 by the calculated number of song for a category.
-  for cnt in range(0,playlist_tot_songs):
-    cat=song_distribution_list[cnt]
-    cat_idx=categories.index(cat)
-    cat_repeat_interval=cat_rpt[cat_idx]
-    debug_out(1,["Main Loop:",cnt, cat,cat_idx, cat_repeat_interval])
-    while process_cat_track(cnt) == True:
-      debug_out(1,[" End - Main Loop","hello"])
+    cat_cur = conn.cursor()
+    f2 = open(playlist_name+".m3u", "w")
+    f2.write("#EXTM3U" + "\n")
+    #if debug_level>0:
+    f3 = open("playlist_debug.log", "w")
 
+      
+    # Need to set last_play_dt to 0 if its a brand new track
+    sql_stmnt.execute('update tracks set last_play_dt = 0 where last_play_dt = "Unknown";')
 
-  debug_out(1,["End of process_db main cnt=",cnt])
+    # Prior to (re)creating playlist need to set all tracks as eligble for selection.
+    for x in range(len(categories)):
+      sql_stmnt.execute('''update tracks set played_sw=FALSE, artist_cat_cnt = 0, cat_cnt = ?
+                          where category = ?;''',(cat_rpt[x],categories[x]))
 
-  conn.commit()
-  conn.close()
+    # Create initial list to be used to create the final playlist. Function will create equal distribution
+    # of categories based on the percentage the user specified percentage for each category. 
+    # Each entry is the category from which a song will be later selected..
+    category_distribution_list = category_distribution(c_pct, playlist_tot_songs)
+    
+    
+    debug_out(2,["Main Loop: about to create song distribution {}",category_distribution_list])
+    # Now that we have the category distribution list we'll loop through it to create the playlist
+    for cnt, cat in enumerate(category_distribution_list):
+      cat_idx=categories.index(cat)
+      cat_repeat_interval=cat_rpt[cat_idx]
+      debug_out(2,[" Main Loop - cnt:{}, cat:{}, cat_idx:{}, cat_repeat_interval:{}",cnt, cat,cat_idx, cat_repeat_interval])
+      
+      # call get_track_for_category with the current cat.
+      result = get_track_for_category(cat,cnt)
+      if result != 'Continue':
+        debug_out(2,[" Main Loop, taking an early exit"])
+        break
+        
+      
 
-  debug_out(0,["# # # # # # # # # # # # # # # # # # # # # "])
-  debug_out(0,["# Script execution complete. Final track count=",cnt+1])
-  debug_out(0,["# # # # # # # # # # # # # # # # # # # # # "])
+    debug_out(1,["End of process_db main cnt={}",cnt])
+        
 
-  f2.close() # m3u file
-  if debug_level>0:
+    conn.commit()
+    conn.close()
+
+    debug_out(0,["# # # # # # # # # # # # # # # # # # # # # "])
+    debug_out(0,["# Script execution complete. Final track count={}, nbr_of_cat_song list = {}, tot_cat_tracks = {}",playlist_tot_songs,nbr_of_cat_songs,tot_c_trk_cnt,"f"])
+    debug_out(0,["# # # # # # # # # # # # # # # # # # # # # "])
+
+    f2.close() # m3u file
+    #if debug_level>0:
     f3.close() # m3u debug file
-  df.close() # Debug file
+    
 
-  return(playlist_tot_songs,nbr_of_cat_songs,False)
-  
-  # End of "main" function
-def main2(config):  
-  misc, categories = itemgetter('misc','categories')(config)
-  playlist_name = misc['playlist_name']
+    return(playlist_tot_songs,nbr_of_cat_songs,tot_c_trk_cnt,False)
 
-  print("playlist name from dict=",playlist_name)
-#print(categories)
-  return(5,3,False)
+    # End of "main" function
 
 if __name__ == "__main__":
-   main(dbug_lvl=5,c_pct=cat_pct,playlist_nm=playlist_name,playlist_lgth=playlist_length,create_rcntadd_cat='on',
-        recentadd_dt=date_added,
-        weighting_pct=str(20),
-        create_plylist="Yes")  
+   main(dbug_lvl=5,c_pct=cat_pct,playlist_nm=playlist_name,playlist_lgth=playlist_length,create_plylist="Yes")  
   
    

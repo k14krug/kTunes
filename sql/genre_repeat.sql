@@ -1,18 +1,19 @@
 .header on
 .mode column
-select a.genre, max(artist_cnt) artist_cnt, genre_cnt, genre_cnt/max(artist_cnt) repeat
+select a.category, max(artist_cnt) artist_cnt, genre_cnt, genre_cnt/max(artist_cnt) repeat
 from 
 (
-select  genre, artist, count(*) artist_cnt	
+select  category, artist, count(*) artist_cnt	
   from tracks
- where genre in ('RecentAdd', 'Latest', 'In Rot', 'Other', 'Old', 'Album')
-group by genre, artist
+ where category in ('RecentAdd', 'Latest', 'In Rot', 'Other ', 'Old', 'Album')
+group by category, artist
 ) a,
-(select genre, count(*) genre_cnt
+(select category, count(*) genre_cnt
    from tracks
-group by genre
+group by category
 ) b
-where a.genre=b.genre
-group by a.genre
+where a.category=b.category
+group by a.category
+
 
 --comment

@@ -1,10 +1,21 @@
-  <form method="get" action="{{ url_for('tracks') }}" class="search">
-    <label for="artist">Artist:</label>
-    <input type="text" name="artist" value="{{ q_dict['artist'] }}">
-    <label for="song">Song:</label>
-    <input type="text" name="song" value="{{ q_dict['song'] }}">
-    <label for="category">Category:</label>
-    <input type="text" name="category" value="{{ q_dict['category'] }}">
+  <form method="get" action="{{ url_for(endpoint) }}" class="input-container">
+    <div class="input-field">
+      <label for="playlist">Playlist:</label>
+      <input type="text" name="playlist" value="{{ q_dict['playlist'] }}">
+    </div>
+    <div class="input-field">
+      <label for="artist">Artist:</label>
+      <input type="text" name="artist" value="{{ q_dict['artist'] }}">
+    </div>
+    <div class="input-field">
+      <label for="song">Song:</label>
+      <input type="text" name="song" value="{{ q_dict['song'] }}">
+    </div>
+    <div class="input-field">
+      <label for="category">Category:</label>
+      <input type="text" name="category" value="{{ q_dict['category'] }}">
+    </div>
+    <br>
         <select id="row_select" name="per_page" class="per-page" onchange="this.form.submit()"> 
             <option value="max_rows"> </option> 
             <option value="20" {% if per_page == 20 %}selected{% endif %}>20</option>
@@ -24,7 +35,7 @@
               <th>Category</th>
               <th>Album</th>
               <th>Play Count</th>
-              <th>Last Play Date</th>
+              <th><a href="{{ url_for(endpoint, sort='last_play_dt', direction=sort_direction) }}">Last Play Date</a></th>
               <th>Date Added</th>
           </tr>
       </thead>

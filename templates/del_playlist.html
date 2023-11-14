@@ -1,0 +1,34 @@
+
+<form method="post">
+  <div class="search">
+      <label for="playlist">Playlist Name:</label>
+      <input type="text" name="playlist" value="{{ q_dict['playlist'] }}">
+      <button type="submit">Search</button>
+  </div>
+  
+  <div class="table-wrapper">
+      <table>
+          <thead>
+              <tr>
+                  <th>Select</th>
+                  <th>Playlist Name</th>
+                  <th>Playlist Date</th>
+                  <th>Number of Songs</th>
+              </tr>
+          </thead>
+          <tbody>
+              {% for track in tracks %}
+              <tr>
+                  <td><input type="checkbox" name="selected_playlists" value="{{ track.playlist_nm }}"></td>
+                  <td>{{ track.playlist_nm }}</td>
+                  <td>{{ track.playlist_dt }}</td>
+                  <td>{{ track.nbr_of_songs }}</td>
+              </tr>
+              {% endfor %}
+          </tbody>
+      </table>
+  </div>
+  
+  <button type="submit">Delete Selected Playlists</button>
+</form>
+  

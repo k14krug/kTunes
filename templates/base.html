@@ -6,115 +6,43 @@
     <title>{% block title %}{% endblock %}</title>
     <!-- Required CSS -->
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+    <!-- Include DataTables CSS -->
+    <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
+    <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/colreorder/1.5.4/css/colReorder.dataTables.min.css">
     <style>
-      /* Custom CSS */
-      table {
-        border-collapse: collapse;
-        width: 100%;
-        border: 1px solid #ddd;
-        max-height: 500px;
-        margin-bottom: 10;
-        }
-        th, td {
-        text-align: left;
-        padding: 0;
-        line-height: 1.2;
-        font-size: 14px;
-        border-bottom: 1px solid #ddd;
-        }
-        th {
-        background-color: #4CAF50;
-        color: white;
-        }
-      .pagination {
-        margin: auto;
-      }
-      .pagination-link {
-        padding: 6px;
-        border: 1px solid #ddd;
-        text-decoration: none;
-        color: black;
-      }
-      .pagination a.active {
-        background-color: #4CAF50;
-        color: white;
-        border: 1px solid #4CAF50;
-      }
-      .pagination a:hover:not(.active) {
-        background-color: #ddd;
-      }
-      .search {
-        display: inline-flex;
-        flex-wrap: wrap;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 20px;
-        margin-right: 10px;
-      }
-      .search label {
-        margin-right: 10px;
-      }
-      .per-page {
-        margin-left: 20px;
-      }
-      .navbar-nav .active {
-        background-color: #4CAF50;
-      }
-    .table {
-        margin-bottom: 10;
-    }
- 
-    .table-wrapper {
-    height: 600px; /* set a fixed height for the table body */
-    overflow-y: scroll; /* set overflow-y to scroll */ 
-    }
-    
-    ::-webkit-scrollbar {
-        width: 5px;
-    }
-    
-    ::-webkit-scrollbar-track {
-        background-color: #f5f5f5;
-    }
-    
-    ::-webkit-scrollbar-thumb {
-        background-color: #000000;
-    }
-    
-    ::-webkit-scrollbar-thumb:hover {
-        background-color: #555;
-    }
+       /*kkrug 11/1/2023 Added to control whitespace between rows of all tables initialized by DataTables */
+    .dataTables_wrapper .dataTable tbody tr {
+      line-height: .1; /* Adjust as needed */
+     }
 
-   /* Background container */
-   .background-container {
-        background-image: url('{{ background_image_url }}');
-        opacity: 0.7 ;
-    }
     </style>
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
   </head>
   <body>
-   <div class="background-container">
-    {% set active_tracks = '' %}
-    {% set active_config = '' %}
-    
-    {% if request.path == url_for('tracks') %}
-      {% set active_tracks = 'active' %}
-    {% elif request.path == url_for('create_playlist') %}
-      {% set active_config = 'active' %}
-    {% endif %}
-    
+   <div>
     <nav class="navbar navbar-expand-md navbar-light bg-light">
-      <a class="navbar-brand" href="{{ url_for('tracks')}}">kTunes</a>
+      <a class="navbar-brand" href="{{ url_for('ktunes.tracks')}}">kTunes</a>
       <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
         <span class="navbar-toggler-icon"></span>
       </button>
       <div class="collapse navbar-collapse" id="navbarNav">
         <ul class="navbar-nav">
-          <li class="nav-item {{ active_tracks }}">
-            <a class="nav-link" href="{{ url_for('tracks')}}">Library</a>
+          <li class="nav-item {% if request.path == url_for('ktunes.create_playlist') %}active{% endif %}">
+            <a class="nav-link" href="{{ url_for('ktunes.create_playlist')}}">Create a Playlist</a>
           </li>
-          <li class="nav-item {{ active_config }}">
-            <a class="nav-link" href="{{ url_for('create_playlist')}}">Create Playlist</a>
+          <li class="nav-item {% if request.path == url_for('ktunes.playlist') %}active{% endif %}">
+            <a class="nav-link" href="{{ url_for('ktunes.playlist')}}">View a Playlist</a>
+          </li>
+          <li class="nav-item {% if request.path == url_for('ktunes.del_playlist') %}active{% endif %}">
+            <a class="nav-link" href="{{ url_for('ktunes.del_playlist')}}">Del Playlists</a>
+          </li>
+          <li class="nav-item {% if request.path == url_for('ktunes.tracks') %}active{% endif %}">
+            <a class="nav-link" href="{{ url_for('ktunes.tracks')}}">Library Tracks</a>
+          </li>
+          <li class="nav-item {% if request.path == url_for('ktunes.settings') %}active{% endif %}">
+            <a class="nav-link" href="{{ url_for('ktunes.settings')}}">Settings</a>
           </li>
         </ul>
       </div>
@@ -129,15 +57,12 @@
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/2.9.3/umd/popper.min.js" integrity="sha512-TY25j37vCUoV+jJlnaX9yxC/W/avf08RE67SqwW76jQQZWXf92tG+1t8/YbWgA9dLQhAq3vq8QsHnGZaSOgZjA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
-
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-infinitescroll/3.0.6/jquery.infinitescroll.min.js"></script>
-    <script>
-    $(document).ready(function() { 
-        var height = $(window).height() / 36;
-        var max_rows = Math.round(height);
-        $('#row_select option:first').text(max_rows).val(max_rows);
-    });
-    </script>
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <script type="text/javascript" src="https://cdn.datatables.net/colreorder/1.5.4/js/dataTables.colReorder.min.js"></script>
+   
+    <!-- Custom JavaScript -->
+    <script src="{{ url_for('static', filename='js/scripts.js') }}"></script>
+    {% block scripts %}{% endblock %}
    </div>
   </body>
 </html>

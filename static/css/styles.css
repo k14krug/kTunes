@@ -1,0 +1,38 @@
+.nav-item.active .nav-link {
+    background-color: #4CAF50;
+}
+h1 {
+    border: 2px #eee solid;
+    color: green;
+    text-align: center;
+    padding: 10px;
+}
+input, label {
+    display:block;
+}
+
+.table-container {
+    max-height: 400px;
+    overflow: auto;
+    display: inline-block;
+    width: 100%;
+    background-color: white;
+    padding: 20px;
+    border-radius: 15px;
+}
+ /*kkrug 11/1/2023 Added to control whitespace between rows of all tables initialized by DataTables */
+.dataTables_wrapper .dataTable tbody tr {
+    line-height: .5; /* Adjust as needed */
+}
+
+/* kkrug 11/2/2023 Added to help format input fields for cr_playlist html template */
+.input-container .input-field {
+    display: inline-block;
+    vertical-align: top;
+    /*padding: 0 10px;
+    box-sizing: border-box;*/
+}
+
+.input-container input {
+    display: block;
+}

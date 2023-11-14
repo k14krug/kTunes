@@ -1,0 +1,21 @@
+{% extends 'base.html' %}
+{% block content %}
+<form method="POST" enctype="multipart/form-data">
+    <label for="itunes_dir" style="font-size: 15px;">iTunes Directory:</label>
+    <input type="text" id="itunes_dir" name="itunes_dir" value="{{ config['misc']['itunes_dir'] }}"placeholder="Enter directory path">
+<br>
+    <label for="itunes_lib" style="font-size: 15px;">iTunes Library XML:</label>
+    <select id="itunes_lib" name="itunes_lib" value="{{ config['misc']['itunes_lib'] }}">
+        {% for file in file_list %}
+        <option value="{{ file }}" {% if file == config['misc']['itunes_lib'] %}selected{% endif %}>{{ file }}</option>
+        {% endfor %}
+    </select>
+
+    <label for="debug_lvl">Debug Level(1-5): </label>
+    <input type="number" name="debug_lvl" value="{{ config['misc']['debug_lvl'] }}" min="0" max="3">
+    <input type="submit" value="Save">
+</form>
+  {% if message %}
+  <p>{{ message }}</p>
+  {% endif %}
+{% endblock %}
