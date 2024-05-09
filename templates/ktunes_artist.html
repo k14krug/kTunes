@@ -1,0 +1,76 @@
+<style>
+    /* datatables have a default  td top and bottom spacing of 8px. This is typically fine with just
+       text but
+       if you have input fields then it causes to much white space. */
+       table.dataTable tbody th, table.dataTable tbody td {
+        padding-top: .1px;
+        padding-bottom: .1px;
+    }
+
+</style>
+<div class="table-wrapper">
+    <form id="filter-form" method="get" action="{{ url_for(endpoint) }}" class="input-container">
+        <div class="input-field">
+          <label for="artist">iTunes Artist Name:</label>
+          <input type="text" name="artist" value="{{ q_dict['artist'] }}">
+        </div>
+        <div class="input-field">
+          <label for="artist_common_name">kTunes Artist Name:</label>
+          <input type="text" name="artist_common_name" value="{{ q_dict['artist_common_name'] }}">
+        </div>
+        <div class="input-field">
+            <label for="common_name_used">Only display Common Names that are being used:</label>
+            <input type="checkbox" name="common_name_used" value="true" {% if q_dict['common_name_used'] %}checked{% endif %}>
+        </div>
+        <br>
+        <select id="row_select" name="per_page" class="per-page" onchange="this.form.submit()"> 
+            <option value="max_rows"> </option> 
+            <option value="20" {% if q_dict.per_page == 20 %}selected{% endif %}>20</option>
+            <option value="25" {% if q_dict.per_page == 25 %}selected{% endif %}>25</option>
+            <option value="30" {% if q_dict.per_page == 30 %}selected{% endif %}>30</option>
+            <option value="50" {% if q_dict.per_page == 50 %}selected{% endif %}>50</option>
+            <option value="100" {% if q_dict.per_page == 100 %}selected{% endif %}>100</option> 
+        </select>
+    </form>
+
+    <form id="update-form" method="post" action="{{ url_for(endpoint) }}" class="input-container">
+        <table cellspacing="0" cellpadding="0">
+            <thead>
+            <tr>
+                <th>iTunes Name</th>
+                <th>Track Count</th>
+                <th>kTunes Name</th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for track in tracks %}
+            <tr>
+                <td>{{ track.artist }}</td>
+                <td><a href="{{ url_for('ktunes.tracks', artist=track.artist) }}">{{ track.track_count }}</a></td>
+                <td class="table-input" >
+                    <!-- The hidden input field is used to allow the app to check if the value was changed and if so call DB update routine. -->
+                    <input type="hidden" name="original_common_name_{{ track.artist }}" value="{{ track.artist_common_name }}">
+                    <input type="text" name="common_name_{{ track.artist }}" value="{{ track.artist_common_name }}">
+                </td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        <button type="submit">Update</button>
+    </form>
+</div>
+
+<script>
+document.getElementById('filter-form').addEventListener('keydown', function(event) {
+    if (event.key === 'Enter') {
+        event.preventDefault();
+        this.submit();
+    }
+});
+
+document.getElementById('update-form').addEventListener('keydown', function(event) {
+    if (event.key === 'Enter') {
+        event.preventDefault();
+    }
+});
+</script>

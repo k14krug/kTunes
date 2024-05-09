@@ -1,0 +1,75 @@
+<style>
+    /* datatables have a default  td top and bottom spacing of 8px. This is typically fine with just
+       text but
+       if you have input fields then it causes to much white space. 
+      table.dataTable tbody th, table.dataTable tbody td {
+        padding-top: .1px;
+        padding-bottom: .1px;
+      
+      }
+  
+    */
+  </style>
+
+    <h3> Update Last Play Date for {{ playlist_nm}} </h3>
+    
+    <form method="get" action="{{ url_for(endpoint) }}" class="input-container">
+      
+      <!--Fields to retain values of playlist_nm and track_cnt between submissions-->
+      <input type="hidden" name="playlist_nm" value="{{ playlist_nm }}">
+      <input type="hidden" name="track_cnt" value="{{ track_cnt }}">
+
+      <div class="input-field">
+        <label for="artist">Artist:</label>
+        <input type="text" name="artist" value="{{ q_dict['artist'] }}">
+      </div>
+      <div class="input-field">
+        <label for="song">Song:</label>
+        <input type="text" name="song" value="{{ q_dict['song'] }}">
+      </div>
+      <div class="input-field">
+        <label for="category">Category:</label>
+        <input type="text" name="category" value="{{ q_dict['category'] }}">
+      </div>
+      <br>
+          <select id="row_select" name="per_page" class="per-page" onchange="this.form.submit()"> 
+              <option value="max_rows"> </option> 
+              <option value="20" {% if per_page == 20 %}selected{% endif %}>20</option>
+              <option value="25" {% if per_page == 25 %}selected{% endif %}>25</option>
+              <option value="30" {% if per_page == 30 %}selected{% endif %}>30</option>
+              <option value="50" {% if per_page == 50 %}selected{% endif %}>50</option>
+              <option value="100" {% if per_page == 100 %}selected{% endif %}>100</option> 
+              <option value="500" {% if per_page == 100 %}selected{% endif %}>500</option> 
+              <option value="1000" {% if per_page == 100 %}selected{% endif %}>1000</option> 
+          </select> 
+          <button type="submit">Search</button>
+    </form>
+    <div class="table-wrapper">
+      <table>
+        <thead>
+            <tr>
+                <th><a href="{{ url_for(endpoint, sort='track_cnt', playlist=q_dict['playlist'], artist=q_dict['artist'], song=q_dict['song'], category=q_dict['category'], per_page=per_page) }}" class="{% if sort == 'track_cnt' %}sorted{% endif %}">Track cnt</a></th>
+                <th><a href="{{ url_for(endpoint, sort='artist', playlist=q_dict['playlist'], artist=q_dict['artist'], song=q_dict['song'], category=q_dict['category'], per_page=per_page) }}" class="{% if sort == 'artist' %}sorted{% endif %}">Artist</a></th>
+                <th><a href="{{ url_for(endpoint, sort='song', playlist=q_dict['playlist'], artist=q_dict['artist'], song=q_dict['song'], category=q_dict['category'], per_page=per_page) }}" class="{% if sort == 'song' %}sorted{% endif %}">Song</a></th>
+                <th><a href="{{ url_for(endpoint, sort='last_play_dt', playlist=q_dict['playlist'], artist=q_dict['artist'], song=q_dict['song'], category=q_dict['category'], per_page=per_page) }}" class="{% if sort == 'last_play_dt' %}sorted{% endif %}">Last Play Date</a></th>
+                <th><a href="{{ url_for(endpoint, sort='ktunes_last_play_dt', playlist=q_dict['playlist'], artist=q_dict['artist'], song=q_dict['song'], category=q_dict['category'], per_page=per_page) }}" class="{% if sort == 'ktunes_last_play_dt' %}sorted{% endif %}">ktunes Last Play Date</a></th>
+                <th><a href="{{ url_for(endpoint, sort='play_cnt', playlist=q_dict['playlist'], artist=q_dict['artist'], song=q_dict['song'], category=q_dict['category'], per_page=per_page) }}" class="{% if sort == 'play_cnt' %}sorted{% endif %}">Play Count</a></th>
+                <th><a href="{{ url_for(endpoint, sort='ktunes_play_cnt', playlist=q_dict['playlist'], artist=q_dict['artist'], song=q_dict['song'], category=q_dict['category'], per_page=per_page) }}" class="{% if sort == 'ktunes_play_cnt' %}sorted{% endif %}">ktunes Play Count</a></th>
+          </tr>
+        </thead>
+        <tbody>
+            {% for track in tracks %}
+            <tr>
+                <td>{{ track[1] }}</td>
+                <td>{{ track[2] }}</td>
+                <td>{{ track[3] }}</td>
+                <td>{{ track[4] }}</td>
+                <td>{{ track[5] }}</td>
+                <td>{{ track[6] }}</td>
+                <td>{{ track[7] }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    

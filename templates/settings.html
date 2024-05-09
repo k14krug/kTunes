@@ -16,6 +16,6 @@
     <input type="submit" value="Save">
 </form>
   {% if message %}
-  <p>{{ message }}</p>
+  <p>{{ message|safe }}</p>
   {% endif %}
 {% endblock %}

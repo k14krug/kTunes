@@ -1,8 +1,16 @@
+<style>
+  /* datatables have a default  td top and bottom spacing of 8px. This is typically fine with just
+     text but
+     if you have input fields then it causes to much white space. */
+    table.dataTable tbody th, table.dataTable tbody td {
+      padding-top: .1px;
+      padding-bottom: .1px;
+    
+    }
+
+
+</style>
   <form method="get" action="{{ url_for(endpoint) }}" class="input-container">
-    <div class="input-field">
-      <label for="playlist">Playlist:</label>
-      <input type="text" name="playlist" value="{{ q_dict['playlist'] }}">
-    </div>
     <div class="input-field">
       <label for="artist">Artist:</label>
       <input type="text" name="artist" value="{{ q_dict['artist'] }}">
@@ -16,39 +24,53 @@
       <input type="text" name="category" value="{{ q_dict['category'] }}">
     </div>
     <br>
-        <select id="row_select" name="per_page" class="per-page" onchange="this.form.submit()"> 
-            <option value="max_rows"> </option> 
-            <option value="20" {% if per_page == 20 %}selected{% endif %}>20</option>
-            <option value="25" {% if per_page == 25 %}selected{% endif %}>25</option>
-            <option value="30" {% if per_page == 30 %}selected{% endif %}>30</option>
-            <option value="50" {% if per_page == 50 %}selected{% endif %}>50</option>
-            <option value="100" {% if per_page == 100 %}selected{% endif %}>100</option> 
-        </select> 
+    <select id="row_select" name="per_page" class="per-page" onchange="this.form.submit()"> 
+      <option value="20" {% if q_dict.per_page == 20 %}selected{% endif %}>20</option>
+      <option value="25" {% if q_dict.per_page == 25 %}selected{% endif %}>25</option>
+      <option value="30" {% if q_dict.per_page == 30 %}selected{% endif %}>30</option>
+      <option value="50" {% if q_dict.per_page == 50 %}selected{% endif %}>50</option>
+      <option value="100" {% if q_dict.per_page == 100 %}selected{% endif %}>100</option> 
+      <option value="500" {% if q_dict.per_page == 500 %}selected{% endif %}>500</option> 
+    </select>
         <button type="submit">Search</button>
   </form>
   <div class="table-wrapper">
     <table>
       <thead>
-          <tr>
-              <th>Artist</th>
-              <th>Song</th>
-              <th>Category</th>
-              <th>Album</th>
-              <th>Play Count</th>
-              <th><a href="{{ url_for(endpoint, sort='last_play_dt', direction=sort_direction) }}">Last Play Date</a></th>
-              <th>Date Added</th>
-          </tr>
+        <tr>
+          {% for column in columns %}
+            <th>
+              <a href="{{ url_for(endpoint, sort=column, direction='desc' if q_dict['sort'] == column and q_dict['sort_direction'] == 'asc' else 'asc', playlist=q_dict['playlist'], artist=q_dict['artist'], song=q_dict['song'], category=q_dict['category'], per_page=q_dict['per_page']) }}" class="{% if sort == column %}sorted{% endif %}">{{ column }}</a>
+            </th>
+          {% endfor %}
+        </tr>
       </thead>
       <tbody>
           {% for track in tracks %}
           <tr>
-              <td>{{ track[0] }}</td>
+              <td>{{ track.artist }}</td>
               <td>{{ track[1] }}</td>
               <td>{{ track[2] }}</td>
               <td>{{ track[3] }}</td>
               <td>{{ track[4] }}</td>
               <td>{{ track[5] }}</td>
               <td>{{ track[6] }}</td>
+              <td class="table-input">
+                <!-- Hidden input field for ktunes_last_play_dt -->
+                <input type="hidden" name="original_ktunes_last_play_dt_{{ track.artist }}" value="{{ track.ktunes_last_play_dt }}">
+                <input type="text" name="ktunes_last_play_dt_{{ track.artist }}" value="{{ track.ktunes_last_play_dt }}" style="width: 80px !important;">
+              </td>
+              <td class="table-input">
+                  <!-- Hidden input field for ktunes_play_cnt -->
+                  <input type="hidden" name="original_ktunes_play_cnt_{{ track.artist }}" value="{{ track.ktunes_play_cnt }}">
+                  <input type="text" name="ktunes_play_cnt_{{ track.artist }}" value="{{ track.ktunes_play_cnt }}" style="width: 50px !important;">
+              </td>
+              <td class="table-input">
+                  <!-- Hidden input field for genre -->
+                  <input type="hidden" name="original_genre_{{ track.artist }}" value="{{ track.genre }}">
+                  <input type="text" name="genre_{{ track.artist }}" value="{{ track.genre }}" style="width: 80px !important;">
+              </td>
+        
           </tr>
           {% endfor %}
       </tbody>

@@ -2,7 +2,7 @@ import sqlite3
 import argparse
 
 
-def validate_playlist(playlist_nm, category_list, category_repeat_intervals):
+def validate_playlist(username, playlist_nm, category_list, category_repeat_intervals):
     # Connect to the kTunes.sqlite database
     conn = sqlite3.connect('kTunes.sqlite')
     cursor = conn.cursor()
@@ -12,15 +12,16 @@ def validate_playlist(playlist_nm, category_list, category_repeat_intervals):
     prev_track_info = None
     prev_track_info_in_category = {}
     validation_errors = 0
+    validation_error_messages = []
 
     track_count = 0
     
     # Get a cursor of all the tracks for the given playlist, ordered by track_cnt
     sql = '''SELECT song, artist, track_cnt, category
              FROM playlist_tracks
-             WHERE playlist_nm = ?
+             WHERE username= ? and playlist_nm = ?
              ORDER BY track_cnt;'''
-    cursor.execute(sql, (playlist_nm,))
+    cursor.execute(sql, (username, playlist_nm,))
     track_info_row = cursor.fetchone()
     if track_info_row is None:
         print(f"Playlist {playlist_nm} not found.")
@@ -40,7 +41,9 @@ def validate_playlist(playlist_nm, category_list, category_repeat_intervals):
                 tracks_since_last_play = track_cnt - last_play_time_artist_in_category
                 if tracks_since_last_play < repeat_interval:
                     validation_errors += 1
-                    print(f"Track '{song}' by '{artist}' in category '{cat}' breaks Rule 1 (category repeat interval) at track_cnt {track_cnt}. ")
+                    error_message = f"Track '{song}' by '{artist}' in category '{cat}' breaks Rule 1 (category repeat interval) at track_cnt {track_cnt}. "
+                    print(error_message)
+                    validation_error_messages.append(error_message)
                     prev_track_info_cat = prev_track_info_in_category.get((artist, cat_index))
                     if prev_track_info_cat is not None:
                         print(f"Previous track '{prev_track_info_cat[0]}' by '{prev_track_info_cat[1]}' in category '{prev_track_info_cat[3]}' at track_cnt {prev_track_info_cat[2]}")
@@ -53,7 +56,10 @@ def validate_playlist(playlist_nm, category_list, category_repeat_intervals):
                 tracks_since_last_play = track_cnt - last_play_time_artist[0]
                 if tracks_since_last_play < repeat_interval:
                     validation_errors += 1
-                    print(f"Track '{song}' by '{artist}' in category '{cat}' breaks Rule 2 (artist repeat interval) at track_cnt {track_cnt}. ")
+                    error_message = f"{song[:20]:<20}' - '{artist[:20]:<20}' in category '{cat[:7]:<7}' breaks Rule 2 (artist repeat interval) at track_cnt {track_cnt}.  Tracks since last play: {tracks_since_last_play}.  Repeat interval: {repeat_interval}."
+                    #error_message = f"{song}' - '{artist}' in category '{cat}' breaks Rule 2 (artist repeat interval) at track_cnt {track_cnt}. "
+                    print(error_message)
+                    validation_error_messages.append(error_message)                    
                     prev_track_info_artist = prev_track_info.get(artist)
                     if prev_track_info_artist is not None and prev_track_info_artist[3] == cat:
                         print(f"Previous track '{prev_track_info_artist[0]}' by '{prev_track_info_artist[1]}' in category '{prev_track_info_artist[3]}' at track_cnt {prev_track_info_artist[2]}")
@@ -68,7 +74,7 @@ def validate_playlist(playlist_nm, category_list, category_repeat_intervals):
     conn.close()
 
     print("Completed validating",track_count + 1, " tracks of ", playlist_nm)
-    return(validation_errors) # Return the number of validation errors
+    return validation_errors, validation_error_messages  # Return the number of validation errors and the error messages
 
 if __name__ == "__main__":
     # Create the parser

@@ -9,6 +9,7 @@
     <!-- Include DataTables CSS -->
     <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
     <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/colreorder/1.5.4/css/colReorder.dataTables.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
     <style>
        /*kkrug 11/1/2023 Added to control whitespace between rows of all tables initialized by DataTables */
     .dataTables_wrapper .dataTable tbody tr {
@@ -22,28 +23,44 @@
   </head>
   <body>
    <div>
-    <nav class="navbar navbar-expand-md navbar-light bg-light">
-      <a class="navbar-brand" href="{{ url_for('ktunes.tracks')}}">kTunes</a>
+    <nav class="navbar navbar-expand-md navbar-dark gradient-custom">
+      <a class="navbar-brand" href="{{ url_for('ktunes.about')}}">Ktunes 
+       <i class="fas fa-music"></i> 
+      </a>
       <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
         <span class="navbar-toggler-icon"></span>
       </button>
       <div class="collapse navbar-collapse" id="navbarNav">
         <ul class="navbar-nav">
-          <li class="nav-item {% if request.path == url_for('ktunes.create_playlist') %}active{% endif %}">
-            <a class="nav-link" href="{{ url_for('ktunes.create_playlist')}}">Create a Playlist</a>
-          </li>
-          <li class="nav-item {% if request.path == url_for('ktunes.playlist') %}active{% endif %}">
-            <a class="nav-link" href="{{ url_for('ktunes.playlist')}}">View a Playlist</a>
-          </li>
-          <li class="nav-item {% if request.path == url_for('ktunes.del_playlist') %}active{% endif %}">
-            <a class="nav-link" href="{{ url_for('ktunes.del_playlist')}}">Del Playlists</a>
+          <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+              Playlist
+            </a>
+            <div class="dropdown-menu" aria-labelledby="navbarDropdown">
+              <a class="dropdown-item {% if request.path == url_for('ktunes.create_playlist') %}active{% endif %}" href="{{ url_for('ktunes.create_playlist')}}">Create a Playlist</a>
+              <a class="dropdown-item {% if request.path == url_for('ktunes.playlist') %}active{% endif %}" href="{{ url_for('ktunes.playlist')}}">View a Playlist</a>
+              <a class="dropdown-item {% if request.path == url_for('ktunes.del_playlist') %}active{% endif %}" href="{{ url_for('ktunes.del_playlist')}}">Del Playlists</a>
+            </div>
           </li>
           <li class="nav-item {% if request.path == url_for('ktunes.tracks') %}active{% endif %}">
             <a class="nav-link" href="{{ url_for('ktunes.tracks')}}">Library Tracks</a>
           </li>
+          <li class="nav-item {% if request.path == url_for('ktunes.ktunes_artist') %}active{% endif %}">
+            <a class="nav-link" href="{{ url_for('ktunes.ktunes_artist')}}">kTunes Artist</a>
+          </li>
           <li class="nav-item {% if request.path == url_for('ktunes.settings') %}active{% endif %}">
             <a class="nav-link" href="{{ url_for('ktunes.settings')}}">Settings</a>
           </li>
+        </ul>
+        <ul class="navbar-nav ml-auto">
+          <div style="text-align: right;">
+          {% if current_user.is_authenticated %}
+              <li> {{ current_user.id }}</li>
+              <li><a href="{{ url_for('login.logout') }}">Logout</a></li>
+          {% else %}
+              <li><a href="{{ url_for('login.login') }}">Login</a></li>
+          {% endif %}
+          </div>
         </ul>
       </div>
     </nav>

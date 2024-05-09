@@ -1,6 +1,7 @@
 from calendar import c
 import xml.etree.ElementTree as ET
 import sqlite3
+from sqlite3 import IntegrityError
 import urllib.parse
 from os.path import isfile, getsize
 import os
@@ -43,14 +44,15 @@ def main(xml_file):
                 found = True
         return 'Unknown'
 
-    #doc = 'iTunesMusicLibrary.xml'
-
+    #Dictionary to return to calling program
+    return_dict = {}
 
     # Get the current working directory
     current_directory = os.getcwd()
 
     # Combine the directory and file into a single path
     doc = os.path.join(current_directory, xml_file)
+    return_dict['xml_file'] = doc
 
     # Get the last modified time
     last_modified_time = os.path.getmtime(doc)
@@ -58,21 +60,22 @@ def main(xml_file):
     # Convert the timestamp to a readable format
     last_modified_date = time.ctime(last_modified_time)
 
+    
+
     print(f"           {doc} last modified date: {last_modified_date}")
+    return_dict['last_modified_date'] = last_modified_date
 
 
 
     library = ET.parse(doc)
     songs = library.findall('dict/dict/dict') #Finds all the songs in the 2nd child dict
     # Variable for song count
-    song_count_xml = 0
     song_count_inserts = 0
     song_count_tbl_tot = 0
     song_count_updates = 0
 
-    # Loops through and enters into db all songs in doc
+    # Loops through xml and insert/update tracks table
     for entry in songs:
-        song_count_xml += 1
         # Uses the lookup function to return the text from key
         name = lookup(entry, 'Name')
         artist = lookup(entry, 'Artist')
@@ -97,16 +100,21 @@ def main(xml_file):
         data = [album, genre,genre, length,last_play_dt,rating,play_cnt,name,artist,location]
         try:
           cur.execute('''INSERT INTO tracks
-              (song, artist,  album, location, genre, category, length, last_play_dt, date_added, rating, play_cnt) 
-              VALUES ( ?, ?, ?, ?, ?,?, ?, ?, ?, ?, ? )''', 
-              (name, artist, album, location, genre, genre, length, last_play_dt, date_added, rating, play_cnt))
-        except:
+              (song, artist,  artist_common_name, album, location, genre, category, ktunes_genre, length, last_play_dt, ktunes_last_play_dt, date_added, rating, play_cnt, ktunes_play_cnt) 
+              VALUES ( ?, ?, ?, ?, ?,?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''', 
+              (name, artist, artist, album, location, genre, genre, genre, length, last_play_dt, last_play_dt, date_added, rating, play_cnt, play_cnt))
+        except IntegrityError: #Row already exists so update it
           update = True
-          #print('Updating track {}'.format([name, artist,last_play_dt]))
+          #if artist.startswith('Phoe'):
+          #print('Updating track {}'.format([name, artist, location]))
+
+          # On an update we are not updating ktunes_last_play_dt or ktunes_play_cnt or ktunes_genre.
+          # This is because the app will allows you to choose to create a playlist based on the native
+          # iTunes data or the kTunes data. 
           cur.execute('''UPDATE tracks
                   SET album        = ? ,
                       genre        = ? ,
-                      category     = ? ,
+                      category = ? ,
                       length       = ? ,
                       last_play_dt = ? ,
                       rating       = ? ,
@@ -115,6 +123,17 @@ def main(xml_file):
                     AND artist   = ?
                     AND location = ? ''',data)
           song_count_updates += 1    
+          #if artist.startswith('Phoe'):
+          #cur.execute('''select * from tracks where artist like 'Phoeb%' ''')
+          #row=cur.fetchone()
+          #song_count_tbl_tot=row[0]
+          #print('Updated track {}'.format([row]))
+              
+        except Exception as e:
+          print(f"An error occurred: {e}")
+          print('Error on track {}'.format([name, artist, location]))
+          raise
+         
         if update != True:
           song_count_inserts  += 1
         
@@ -152,14 +171,14 @@ def main(xml_file):
     # If there have been any new tracks added we need to insert them into artist last_played with a value of 0
       # (should this be moved to load_xml.py)
 
-    cur.execute('''insert into artist_last_played
-                  (artist, last_played, genre)
-                    select artist, 0, genre
-                      from tracks
-                    where (artist,genre) not in 
-                          (select  artist,genre from artist_last_played)
-                    group by artist, genre
-              ''')
+    #cur.execute('''insert into artist_last_played
+    #              (artist, last_played, genre)
+    #                select artist, 0, genre
+    #                  from tracks
+    #                where (artist,genre) not in 
+    #                      (select  artist,genre from artist_last_played)
+    #                group by artist, genre
+    #          ''')
     cur.execute('''select count(*) from tracks''')
     row=cur.fetchone()
     song_count_tbl_tot=row[0]
@@ -168,11 +187,19 @@ def main(xml_file):
     conn.close()
 
     # Prints out how many songs found compaired to songs entered into db
+    return_dict['status'] = 'success'
+
     print(f'           {len(songs)} songs in itunes library  {doc}')
+    return_dict['song_count_xml'] = len(songs)
     print('           {} songs entered into the database.'.format(song_count_inserts))
+    return_dict['song_count_inserts'] = song_count_inserts
     print('           {} songs updated.'.format(song_count_updates))
     print(f'           {song_count_tbl_tot} now in DB')
+    return_dict['song_count_tbl_tot'] = song_count_tbl_tot
     #print(f"load_xml - {doc} last modified date: {last_modified_date}")
+
+    #print('return_dict: ', return_dict)
+    return(return_dict)
 if __name__ == '__main__':
     main()
 
