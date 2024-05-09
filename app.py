@@ -30,7 +30,7 @@ login_manager.init_app(app)
 login_manager.login_view = "login.login"  # set the login_view
 
 # Define the blueprint
-ktunes = Blueprint('ktunes', __name__, url_prefix='/ktunes')
+ktune = Blueprint('ktunes', __name__, url_prefix='/ktunesv1.1')
 
 # Database
 DATABASE = 'kTunes.sqlite'
@@ -148,12 +148,12 @@ def query_table():
     QD.calc_page_vals(count)
     return tracks, count
 
-@ktunes.route('/about')
+@ktune.route('/about')
 @login_required
 def about():
     return render_template('about.html')
 
-@ktunes.route('/settings', methods=['GET', 'POST'])
+@ktune.route('/settings', methods=['GET', 'POST'])
 @login_required
 def settings():
     config.read(config_path)
@@ -209,7 +209,7 @@ def settings():
     return render_template('settings.html', config=config, message=message, file_list=file_list)
 
 # route to create a new playlist
-@ktunes.route("/cr_playlist", methods=["GET", "POST"])
+@ktune.route("/cr_playlist", methods=["GET", "POST"])
 @login_required
 def create_playlist():
     print(current_user.id)  # This will print the username of the logged-in user
@@ -379,7 +379,7 @@ def create_playlist():
     return render_template("cr_playlist.html", endpoint='ktunes.playlist', categories=categories, config=config, total_songs=total_songs, track_counts_list=playlist_cat_cnt, tot_songs=lib_cat_cnt, distinct_artists=distinct_artists, repeat_interval=category_repeat_interval, error_msgs=error_msg, success=success_msg, copy=copy_msg)
 
 # Route to display the paginated table of a playlist
-@ktunes.route('/playlist', methods=['GET', 'POST'])
+@ktune.route('/playlist', methods=['GET', 'POST'])
 @login_required
 def playlist():
     tab_name='ktunes playlist'
@@ -428,7 +428,7 @@ def playlist():
 
 
 # Route to update the track's ktunes_last_play_dt and ktunes_play_cnt
-@ktunes.route('/update_last_play_dt', methods=['GET', 'POST'])
+@ktune.route('/update_last_play_dt', methods=['GET', 'POST'])
 @login_required
 def update_last_play_dt():
     tab_name='ktunes update'
@@ -469,13 +469,13 @@ def update_last_play_dt():
     return render_template('table_templ.html', tab_name=tab_name, playlist_nm=playlist_nm, template_name=template_name, endpoint=endpoint, tracks=tracks, count=count, total_pages=QD.q_dict['total_pages'], q_dict=QD.q_dict, sort=sort)
 
 # Print out all routes
-@ktunes.after_request
+@ktune.after_request
 def print_routes(response):
     print(app.url_map)
     return response
 
 # Route to display the paginated table of tracks
-@ktunes.route('/tracks', methods=['GET', 'POST'])
+@ktune.route('/tracks', methods=['GET', 'POST'])
 @login_required
 def tracks(artist=None):
     try:
@@ -554,7 +554,7 @@ def update_artist_common_name(artist, common_name):
     db.commit()
     db.close()
 
-@ktunes.route('/ktunes_artist', methods=['GET', 'POST'])
+@ktune.route('/ktunes_artist', methods=['GET', 'POST'])
 @login_required
 def ktunes_artist():
     
@@ -632,7 +632,7 @@ def ktunes_artist():
 
     #return render_template('artist_tracks.html', template_name=template_name, endpoint=endpoint, tracks=tracks,)
 
-@ktunes.route('/list_playlist', methods=['GET', 'POST'])
+@ktune.route('/list_playlist', methods=['GET', 'POST'])
 @login_required
 def list_playlist():
     username=current_user.id
@@ -670,11 +670,8 @@ def list_playlist():
 
     return render_template('table_templ.html', template_name=template_name, endpoint=endpoint, tracks=tracks, count=count,  q_dict=QD.q_dict)
 
-# Register the blueprints
-#app.register_blueprint(ktunes)
 
-
-@ktunes.route('/del_playlist', methods=['GET', 'POST'])
+@ktune.route('/del_playlist', methods=['GET', 'POST'])
 @login_required
 def del_playlist():
     username=current_user.id
@@ -721,7 +718,7 @@ def del_playlist():
     return render_template('table_templ.html', template_name=template_name, endpoint=endpoint, tracks=tracks, count=count,  q_dict=QD.q_dict)
 
 # Register the blueprints
-app.register_blueprint(ktunes)
+app.register_blueprint(ktune)
 
 def is_nginx_running():
     for process in psutil.process_iter(['pid', 'name']):
